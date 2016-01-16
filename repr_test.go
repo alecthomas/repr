@@ -16,9 +16,9 @@ type testStruct struct {
 	A anotherStruct
 }
 
-func TestDump(t *testing.T) {
-	assert.Equal(t, `[]string{"a", "b"}`, Repr([]string{"a", "b"}))
-	assert.Equal(t, `[]int{1, 2}`, Repr([]int{1, 2}))
+func TestRepr(t *testing.T) {
+	assert.Equal(t, "[]string{\n  \"a\",\n  \"b\",\n}", Repr([]string{"a", "b"}))
+	assert.Equal(t, "[]int{\n  1,\n  2,\n}", Repr([]int{1, 2}))
 	pi := new(int)
 	*pi = 13
 	assert.Equal(t, `&13`, Repr(pi))
@@ -27,7 +27,7 @@ func TestDump(t *testing.T) {
 	assert.Equal(t, `make(<-chan map[string]*repr.testStruct, 1)`, Repr(ch))
 
 	m := map[string]int{"a": 1}
-	assert.Equal(t, `map[string]int{"a": 1}`, Repr(m))
+	assert.Equal(t, "map[string]int{\n  \"a\": 1,\n}", Repr(m))
 
 	s := &testStruct{
 		S: "String",
@@ -36,5 +36,22 @@ func TestDump(t *testing.T) {
 			A: []int{1, 2, 3},
 		},
 	}
-	assert.Equal(t, `&repr.testStruct{"S": "String", "I": &13, "A": repr.anotherStruct{"A": []int{1, 2, 3}}}`, Repr(s))
+	assert.Equal(t, `&repr.testStruct{
+  "S": "String",
+  "I": &13,
+  "A": repr.anotherStruct{
+    "A": []int{
+      1,
+      2,
+      3,
+    },
+  },
+}`, Repr(s))
+
+	b := []uint8{1, 2, 3}
+	assert.Equal(t, `[]uint8{
+  1,
+  2,
+  3,
+}`, Repr(b))
 }

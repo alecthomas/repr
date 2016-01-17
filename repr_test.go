@@ -3,7 +3,7 @@ package repr
 import (
 	"testing"
 
-	"github.com/alecthomas/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 type anotherStruct struct {

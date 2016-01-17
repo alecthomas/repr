@@ -65,7 +65,7 @@ func reprValue(w io.Writer, v reflect.Value, indent string) {
 		for i := 0; i < v.NumField(); i++ {
 			t := v.Type().Field(i)
 			f := v.Field(i)
-			fmt.Fprintf(w, "%s%q: ", indent+"  ", t.Name)
+			fmt.Fprintf(w, "%s%s: ", indent+"  ", t.Name)
 			reprValue(w, f, indent+"  ")
 			if i != v.NumField()-1 {
 				fmt.Fprintf(w, ",\n")

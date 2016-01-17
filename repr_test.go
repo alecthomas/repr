@@ -37,10 +37,10 @@ func TestRepr(t *testing.T) {
 		},
 	}
 	assert.Equal(t, `&repr.testStruct{
-  "S": "String",
-  "I": &13,
-  "A": repr.anotherStruct{
-    "A": []int{
+  S: "String",
+  I: &13,
+  A: repr.anotherStruct{
+    A: []int{
       1,
       2,
       3,

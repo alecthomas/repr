@@ -1,4 +1,4 @@
-# Python's repr() for Go
+# Python's repr() for Go [![](https://godoc.org/github.com/alecthomas/repr?status.svg)](http://godoc.org/github.com/alecthomas/repr) [![Build Status](https://travis-ci.org/alecthomas/repr.png)](https://travis-ci.org/alecthomas/repr)
 
 This package attempts to represent Go values in a form that can be copy-and-pasted into source code
 directly.

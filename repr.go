@@ -1,7 +1,8 @@
-// Package repr attempts to represent Go values in a form as close to real Go code as possible.
+// Package repr attempts to represent Go values in a form that can be copy-and-pasted into source
+// code directly.
 //
-// Some values can not be represented directly, specifically pointers to basic types as this
-// requires two steps; new() then assign. These values are represented as `&<value>`. eg. &23
+// Unfortunately some values (such as pointers to basic types) can not be represented directly in
+// Go. These values will be represented as `&<value>`. eg. `&23`
 package repr
 
 import (

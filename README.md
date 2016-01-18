@@ -1,9 +1,9 @@
 # Python's repr() for Go [![](https://godoc.org/github.com/alecthomas/repr?status.svg)](http://godoc.org/github.com/alecthomas/repr) [![Build Status](https://travis-ci.org/alecthomas/repr.png)](https://travis-ci.org/alecthomas/repr)
 
-This package attempts to represent Go values in a form that can be copy-and-pasted into source code
-directly.
+This package attempts to represent Go values in a form that can be used almost directly in Go source
+code.
 
-Unfortunately some values (such as pointers to basic types) can not be represented directly in Go.
+Unfortunately, some values (such as pointers to basic types) can not be represented directly in Go.
 These values will be represented as `&<value>`. eg. `&23`
 
 ## Example
@@ -27,13 +27,5 @@ func main() {
 Outputs
 
 ```
-&main.test{
-  "S": "String",
-  "I": 123,
-  A: []int{
-    1,
-    2,
-    3,
-  },
-}
+&main.test{"S": "String", "I": 123, A: []int{1, 2, 3}}
 ```

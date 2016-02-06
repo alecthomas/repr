@@ -127,6 +127,8 @@ func reprValue(w io.Writer, v reflect.Value, options *reprOptions, indent string
 		reprValue(w, v.Elem(), options, indent)
 	case reflect.String:
 		fmt.Fprintf(w, "%q", v.Interface())
+	case reflect.Interface:
+		reprValue(w, v.Elem(), options, indent)
 	default:
 		fmt.Fprintf(w, "%v", v)
 	}

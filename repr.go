@@ -93,7 +93,7 @@ func reprValue(w io.Writer, v reflect.Value, options *reprOptions, indent string
 			fmt.Fprintf(w, "%s", ni)
 			reprValue(w, k, options, ni)
 			fmt.Fprintf(w, ": ")
-			reprValue(w, kv, options, in)
+			reprValue(w, kv, options, ni)
 			if options.indent != "" {
 				fmt.Fprintf(w, ",\n")
 			} else if i < v.Len()-1 {

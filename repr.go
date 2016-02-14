@@ -154,9 +154,9 @@ func reprValue(w io.Writer, v reflect.Value, options *reprOptions, indent string
 	case reflect.String:
 		t := v.Type()
 		if t.Name() != "string" {
-			fmt.Fprintf(w, "%s(%q)", t, v.Interface())
+			fmt.Fprintf(w, "%s(%q)", t, v.String())
 		} else {
-			fmt.Fprintf(w, "%q", v.Interface())
+			fmt.Fprintf(w, "%q", v.String())
 		}
 	case reflect.Interface:
 		reprValue(w, v.Elem(), options, indent)

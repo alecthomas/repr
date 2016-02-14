@@ -76,3 +76,12 @@ func TestReprByteArray(t *testing.T) {
 	b := []byte{1, 2, 3}
 	assert.Equal(t, `[]uint8{1, 2, 3}`, Repr(b))
 }
+
+type privateTestStruct struct {
+	a string
+}
+
+func TestReprPrivateField(t *testing.T) {
+	s := privateTestStruct{"hello"}
+	assert.Equal(t, `repr.privateTestStruct{a: "hello"}`, Repr(s))
+}

@@ -13,6 +13,32 @@ import (
 	"reflect"
 )
 
+// "Real" names of basic kinds, used to differentiate type aliases.
+var realKindName = map[reflect.Kind]string{
+	reflect.Bool:       "bool",
+	reflect.Int:        "int",
+	reflect.Int8:       "int8",
+	reflect.Int16:      "int16",
+	reflect.Int32:      "int32",
+	reflect.Int64:      "int64",
+	reflect.Uint:       "uint",
+	reflect.Uint8:      "uint8",
+	reflect.Uint16:     "uint16",
+	reflect.Uint32:     "uint32",
+	reflect.Uint64:     "uint64",
+	reflect.Uintptr:    "uintptr",
+	reflect.Float32:    "float32",
+	reflect.Float64:    "float64",
+	reflect.Complex64:  "complex64",
+	reflect.Complex128: "complex128",
+	reflect.Array:      "array",
+	reflect.Chan:       "chan",
+	reflect.Func:       "func",
+	reflect.Map:        "map",
+	reflect.Slice:      "slice",
+	reflect.String:     "string",
+}
+
 type reprOptions struct {
 	indent string
 }
@@ -126,10 +152,20 @@ func reprValue(w io.Writer, v reflect.Value, options *reprOptions, indent string
 		fmt.Fprintf(w, "&")
 		reprValue(w, v.Elem(), options, indent)
 	case reflect.String:
-		fmt.Fprintf(w, "%q", v.Interface())
+		t := v.Type()
+		if t.Name() != "string" {
+			fmt.Fprintf(w, "%s(%q)", t, v.Interface())
+		} else {
+			fmt.Fprintf(w, "%q", v.Interface())
+		}
 	case reflect.Interface:
 		reprValue(w, v.Elem(), options, indent)
 	default:
-		fmt.Fprintf(w, "%v", v)
+		t := v.Type()
+		if t.Name() != realKindName[t.Kind()] {
+			fmt.Fprintf(w, "%s(%v)", t, v)
+		} else {
+			fmt.Fprintf(w, "%v", v)
+		}
 	}
 }

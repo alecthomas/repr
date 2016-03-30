@@ -91,20 +91,24 @@ func reprValue(w io.Writer, v reflect.Value, options *reprOptions, indent string
 	switch v.Kind() {
 	case reflect.Slice, reflect.Array:
 		fmt.Fprintf(w, "%s{", v.Type())
-		if options.indent != "" && v.Len() != 0 {
-			fmt.Fprintf(w, "\n")
-		}
-		for i := 0; i < v.Len(); i++ {
-			e := v.Index(i)
-			fmt.Fprintf(w, "%s", ni)
-			reprValue(w, e, options, ni)
+		if v.Len() == 0 {
+			fmt.Fprint(w, "}")
+		} else {
 			if options.indent != "" {
-				fmt.Fprintf(w, ",\n")
-			} else if i < v.Len()-1 {
-				fmt.Fprintf(w, ", ")
+				fmt.Fprintf(w, "\n")
 			}
+			for i := 0; i < v.Len(); i++ {
+				e := v.Index(i)
+				fmt.Fprintf(w, "%s", ni)
+				reprValue(w, e, options, ni)
+				if options.indent != "" {
+					fmt.Fprintf(w, ",\n")
+				} else if i < v.Len()-1 {
+					fmt.Fprintf(w, ", ")
+				}
+			}
+			fmt.Fprintf(w, "%s}", in)
 		}
-		fmt.Fprintf(w, "%s}", in)
 	case reflect.Chan:
 		fmt.Fprintf(w, "make(")
 		fmt.Fprintf(w, "%s", v.Type())
@@ -159,7 +163,11 @@ func reprValue(w io.Writer, v reflect.Value, options *reprOptions, indent string
 			fmt.Fprintf(w, "%q", v.String())
 		}
 	case reflect.Interface:
-		reprValue(w, v.Elem(), options, indent)
+		if v.IsNil() {
+			fmt.Fprintf(w, "interface {}(nil)")
+		} else {
+			reprValue(w, v.Elem(), options, indent)
+		}
 	default:
 		t := v.Type()
 		if t.Name() != realKindName[t.Kind()] {

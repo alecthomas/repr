@@ -1,8 +1,8 @@
 // Package repr attempts to represent Go values in a form that can be copy-and-pasted into source
 // code directly.
 //
-// Unfortunately some values (such as pointers to basic types) can not be represented directly in
-// Go. These values will be represented as `&<value>`. eg. `&23`
+// Some values (such as pointers to basic types) can not be represented directly in
+// Go. These values will be output as `&<value>`. eg. `&23`
 package repr
 
 import (
@@ -39,141 +39,197 @@ var realKindName = map[reflect.Kind]string{
 	reflect.String:     "string",
 }
 
-type reprOptions struct {
-	indent string
+// Default prints to os.Stdout with two space indentation.
+var Default = New(os.Stdout, Indent("  "))
+
+// An Option modifies the default behaviour of a Printer.
+type Option func(o *Printer)
+
+// Indent output by this much.
+func Indent(indent string) Option { return func(o *Printer) { o.indent = indent } }
+
+// NoIndent disables indenting.
+func NoIndent() Option { return Indent("") }
+
+// OmitEmpty omits empty field members from output.
+func OmitEmpty() Option { return func(o *Printer) { o.omitEmpty = true } }
+
+// Printer represents structs in a printable manner.
+type Printer struct {
+	indent    string
+	omitEmpty bool
+	w         io.Writer
 }
 
-func (r *reprOptions) nextIndent(indent string) string {
-	if r.indent != "" {
-		return indent + r.indent
+// New creates a new Printer on w with the given Options.
+func New(w io.Writer, options ...Option) *Printer {
+	p := &Printer{w: w}
+	for _, option := range options {
+		option(p)
+	}
+	return p
+}
+
+func (p *Printer) nextIndent(indent string) string {
+	if p.indent != "" {
+		return indent + p.indent
 	}
 	return ""
 }
 
-func (r *reprOptions) thisIndent(indent string) string {
-	if r.indent != "" {
+func (p *Printer) thisIndent(indent string) string {
+	if p.indent != "" {
 		return indent
 	}
 	return ""
 }
 
-// Option modifies the default behaviour.
-type Option func(o *reprOptions)
-
-// Indent output by this much.
-func Indent(indent string) Option { return func(o *reprOptions) { o.indent = indent } }
-
-// Repr returns a string representing v.
-func Repr(v interface{}, options ...Option) string {
-	w := bytes.NewBuffer(nil)
-	Write(w, v, options...)
-	return w.String()
-}
-
-// Print v to os.Stdout on one line.
-func Print(v interface{}, options ...Option) {
-	Write(os.Stdout, v, options...)
-	fmt.Fprintln(os.Stdout)
-}
-
-// Write writes a representation of v to w.
-func Write(w io.Writer, v interface{}, options ...Option) {
-	os := &reprOptions{}
-	for _, o := range options {
-		o(os)
+// Print the values.
+func (p *Printer) Print(vs ...interface{}) {
+	for _, v := range vs {
+		p.reprValue(reflect.ValueOf(v), "")
 	}
-	reprValue(w, reflect.ValueOf(v), os, "")
 }
 
-func reprValue(w io.Writer, v reflect.Value, options *reprOptions, indent string) {
-	in := options.thisIndent(indent)
-	ni := options.nextIndent(indent)
+// Println prints each value on a new line.
+func (p *Printer) Println(vs ...interface{}) {
+	for _, v := range vs {
+		p.reprValue(reflect.ValueOf(v), "")
+		fmt.Fprintln(p.w)
+	}
+}
+
+func (p *Printer) reprValue(v reflect.Value, indent string) {
+	in := p.thisIndent(indent)
+	ni := p.nextIndent(indent)
 	switch v.Kind() {
 	case reflect.Slice, reflect.Array:
-		fmt.Fprintf(w, "%s{", v.Type())
+		if p.omitEmpty && v.Len() == 0 {
+			return
+		}
+		fmt.Fprintf(p.w, "%s{", v.Type())
 		if v.Len() == 0 {
-			fmt.Fprint(w, "}")
+			fmt.Fprint(p.w, "}")
 		} else {
-			if options.indent != "" {
-				fmt.Fprintf(w, "\n")
+			if p.indent != "" {
+				fmt.Fprintf(p.w, "\n")
 			}
 			for i := 0; i < v.Len(); i++ {
 				e := v.Index(i)
-				fmt.Fprintf(w, "%s", ni)
-				reprValue(w, e, options, ni)
-				if options.indent != "" {
-					fmt.Fprintf(w, ",\n")
+				fmt.Fprintf(p.w, "%s", ni)
+				p.reprValue(e, ni)
+				if p.indent != "" {
+					fmt.Fprintf(p.w, ",\n")
 				} else if i < v.Len()-1 {
-					fmt.Fprintf(w, ", ")
+					fmt.Fprintf(p.w, ", ")
 				}
 			}
-			fmt.Fprintf(w, "%s}", in)
+			fmt.Fprintf(p.w, "%s}", in)
 		}
 	case reflect.Chan:
-		fmt.Fprintf(w, "make(")
-		fmt.Fprintf(w, "%s", v.Type())
-		fmt.Fprintf(w, ", %d)", v.Cap())
+		fmt.Fprintf(p.w, "make(")
+		fmt.Fprintf(p.w, "%s", v.Type())
+		fmt.Fprintf(p.w, ", %d)", v.Cap())
 	case reflect.Map:
-		fmt.Fprintf(w, "%s{", v.Type())
-		if options.indent != "" && v.Len() != 0 {
-			fmt.Fprintf(w, "\n")
+		fmt.Fprintf(p.w, "%s{", v.Type())
+		if p.indent != "" && v.Len() != 0 {
+			fmt.Fprintf(p.w, "\n")
 		}
 		for i, k := range v.MapKeys() {
 			kv := v.MapIndex(k)
-			fmt.Fprintf(w, "%s", ni)
-			reprValue(w, k, options, ni)
-			fmt.Fprintf(w, ": ")
-			reprValue(w, kv, options, ni)
-			if options.indent != "" {
-				fmt.Fprintf(w, ",\n")
+			fmt.Fprintf(p.w, "%s", ni)
+			p.reprValue(k, ni)
+			fmt.Fprintf(p.w, ": ")
+			p.reprValue(kv, ni)
+			if p.indent != "" {
+				fmt.Fprintf(p.w, ",\n")
 			} else if i < v.Len()-1 {
-				fmt.Fprintf(w, ", ")
+				fmt.Fprintf(p.w, ", ")
 			}
 		}
-		fmt.Fprintf(w, "%s}", in)
+		fmt.Fprintf(p.w, "%s}", in)
 	case reflect.Struct:
-		fmt.Fprintf(w, "%s{", v.Type())
-		if options.indent != "" && v.NumField() != 0 {
-			fmt.Fprintf(w, "\n")
+		fmt.Fprintf(p.w, "%s{", v.Type())
+		if p.indent != "" && v.NumField() != 0 {
+			fmt.Fprintf(p.w, "\n")
 		}
 		for i := 0; i < v.NumField(); i++ {
 			t := v.Type().Field(i)
 			f := v.Field(i)
-			fmt.Fprintf(w, "%s%s: ", ni, t.Name)
-			reprValue(w, f, options, ni)
-			if options.indent != "" {
-				fmt.Fprintf(w, ",\n")
+			if p.omitEmpty && isZero(f) {
+				continue
+			}
+			fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
+			p.reprValue(f, ni)
+			if p.indent != "" {
+				fmt.Fprintf(p.w, ",\n")
 			} else if i < v.NumField()-1 {
-				fmt.Fprintf(w, ", ")
+				fmt.Fprintf(p.w, ", ")
 			}
 		}
-		fmt.Fprintf(w, "%s}", indent)
+		fmt.Fprintf(p.w, "%s}", indent)
 	case reflect.Ptr:
 		if v.IsNil() {
-			fmt.Fprintf(w, "nil")
+			fmt.Fprintf(p.w, "nil")
 			return
 		}
-		fmt.Fprintf(w, "&")
-		reprValue(w, v.Elem(), options, indent)
+		fmt.Fprintf(p.w, "&")
+		p.reprValue(v.Elem(), indent)
 	case reflect.String:
 		t := v.Type()
 		if t.Name() != "string" {
-			fmt.Fprintf(w, "%s(%q)", t, v.String())
+			fmt.Fprintf(p.w, "%s(%q)", t, v.String())
 		} else {
-			fmt.Fprintf(w, "%q", v.String())
+			fmt.Fprintf(p.w, "%q", v.String())
 		}
 	case reflect.Interface:
 		if v.IsNil() {
-			fmt.Fprintf(w, "interface {}(nil)")
+			fmt.Fprintf(p.w, "interface {}(nil)")
 		} else {
-			reprValue(w, v.Elem(), options, indent)
+			p.reprValue(v.Elem(), indent)
 		}
 	default:
 		t := v.Type()
 		if t.Name() != realKindName[t.Kind()] {
-			fmt.Fprintf(w, "%s(%v)", t, v)
+			fmt.Fprintf(p.w, "%s(%v)", t, v)
 		} else {
-			fmt.Fprintf(w, "%v", v)
+			fmt.Fprintf(p.w, "%v", v)
 		}
 	}
+}
+
+// String returns a string representing v.
+func String(v interface{}, options ...Option) string {
+	w := bytes.NewBuffer(nil)
+	p := New(w, options...)
+	p.Print(v)
+	return w.String()
+}
+
+// Print v to os.Stdout on one line.
+func Println(v interface{}, options ...Option) {
+	New(os.Stdout, options...).Println(v)
+}
+
+// Print writes a representation of v to w.
+func Print(w io.Writer, v interface{}, options ...Option) {
+	New(w, options...).Print(v)
+}
+
+func isZero(v reflect.Value) bool {
+	switch v.Kind() {
+	case reflect.Array, reflect.String:
+		return v.Len() == 0
+	case reflect.Bool:
+		return !v.Bool()
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return v.Int() == 0
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return v.Uint() == 0
+	case reflect.Float32, reflect.Float64:
+		return v.Float() == 0
+	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
+		return v.IsNil()
+	}
+	return false
 }

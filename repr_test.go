@@ -17,7 +17,7 @@ type testStruct struct {
 }
 
 func TestReprEmptyArray(t *testing.T) {
-	assert.Equal(t, "[]string{}", String([]string{}))
+	assert.Equal(t, "[]string{}", String([]string{}, OmitEmpty(false)))
 }
 
 func TestReprStringArray(t *testing.T) {

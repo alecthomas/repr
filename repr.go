@@ -51,8 +51,8 @@ func Indent(indent string) Option { return func(o *Printer) { o.indent = indent 
 // NoIndent disables indenting.
 func NoIndent() Option { return Indent("") }
 
-// OmitEmpty omits empty field members from output.
-func OmitEmpty() Option { return func(o *Printer) { o.omitEmpty = true } }
+// OmitEmpty sets whether empty field members should be omitted from output.
+func OmitEmpty(omitEmpty bool) Option { return func(o *Printer) { o.omitEmpty = omitEmpty } }
 
 // Printer represents structs in a printable manner.
 type Printer struct {
@@ -63,7 +63,11 @@ type Printer struct {
 
 // New creates a new Printer on w with the given Options.
 func New(w io.Writer, options ...Option) *Printer {
-	p := &Printer{w: w}
+	p := &Printer{
+		w:         w,
+		indent:    "  ",
+		omitEmpty: true,
+	}
 	for _, option := range options {
 		option(p)
 	}
@@ -86,16 +90,21 @@ func (p *Printer) thisIndent(indent string) string {
 
 // Print the values.
 func (p *Printer) Print(vs ...interface{}) {
-	for _, v := range vs {
+	for i, v := range vs {
+		if i > 0 {
+			fmt.Fprint(p.w, " ")
+		}
 		p.reprValue(reflect.ValueOf(v), "")
 	}
 }
 
 // Println prints each value on a new line.
 func (p *Printer) Println(vs ...interface{}) {
-	for _, v := range vs {
+	for i, v := range vs {
+		if i > 0 {
+			fmt.Fprintln(p.w)
+		}
 		p.reprValue(reflect.ValueOf(v), "")
-		fmt.Fprintln(p.w)
 	}
 }
 
@@ -201,19 +210,20 @@ func (p *Printer) reprValue(v reflect.Value, indent string) {
 // String returns a string representing v.
 func String(v interface{}, options ...Option) string {
 	w := bytes.NewBuffer(nil)
+	options = append([]Option{NoIndent()}, options...)
 	p := New(w, options...)
 	p.Print(v)
 	return w.String()
 }
 
-// Print v to os.Stdout on one line.
-func Println(v interface{}, options ...Option) {
-	New(os.Stdout, options...).Println(v)
+// Print v to os.Stdout, one per line.
+func Println(v ...interface{}) {
+	New(os.Stdout).Println(v)
 }
 
-// Print writes a representation of v to w.
-func Print(w io.Writer, v interface{}, options ...Option) {
-	New(w, options...).Print(v)
+// Print writes a representation of v to os.Stdout, separated by spaces.
+func Print(v ...interface{}) {
+	New(os.Stdout).Print(v)
 }
 
 func isZero(v reflect.Value) bool {

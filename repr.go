@@ -218,12 +218,12 @@ func String(v interface{}, options ...Option) string {
 
 // Print v to os.Stdout, one per line.
 func Println(v ...interface{}) {
-	New(os.Stdout).Println(v)
+	New(os.Stdout).Println(v...)
 }
 
 // Print writes a representation of v to os.Stdout, separated by spaces.
 func Print(v ...interface{}) {
-	New(os.Stdout).Print(v)
+	New(os.Stdout).Print(v...)
 }
 
 func isZero(v reflect.Value) bool {

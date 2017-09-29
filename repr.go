@@ -102,10 +102,11 @@ func (p *Printer) Print(vs ...interface{}) {
 func (p *Printer) Println(vs ...interface{}) {
 	for i, v := range vs {
 		if i > 0 {
-			fmt.Fprintln(p.w)
+			fmt.Fprint(p.w, " ")
 		}
 		p.reprValue(reflect.ValueOf(v), "")
 	}
+	fmt.Fprintln(p.w)
 }
 
 func (p *Printer) reprValue(v reflect.Value, indent string) {

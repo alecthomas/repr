@@ -85,3 +85,15 @@ func TestReprPrivateField(t *testing.T) {
 	s := privateTestStruct{"hello"}
 	assert.Equal(t, `repr.privateTestStruct{a: "hello"}`, String(s))
 }
+
+type Enum int
+
+func (e Enum) String() string {
+	return "Value"
+}
+
+func TestEnum(t *testing.T) {
+	v := Enum(1)
+	s := String(v)
+	assert.Equal(t, "repr.Enum(Value)", s)
+}

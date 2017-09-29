@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"unsafe"
 )
 
 // "Real" names of basic kinds, used to differentiate type aliases.
@@ -38,6 +39,8 @@ var realKindName = map[reflect.Kind]string{
 	reflect.Slice:      "slice",
 	reflect.String:     "string",
 }
+
+var goStringerType = reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()
 
 // Default prints to os.Stdout with two space indentation.
 var Default = New(os.Stdout, Indent("  "))
@@ -109,7 +112,20 @@ func (p *Printer) Println(vs ...interface{}) {
 	fmt.Fprintln(p.w)
 }
 
-func (p *Printer) reprValue(v reflect.Value, indent string) {
+func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
+	t := v.Type()
+	// If we can't access a private field directly with reflection, try and do so via unsafe.
+	if !v.CanInterface() && v.CanAddr() {
+		uv := reflect.NewAt(t, unsafe.Pointer(v.UnsafeAddr())).Elem()
+		if uv.CanInterface() {
+			v = uv
+		}
+	}
+	// Attempt to use fmt.GoStringer interface.
+	if t.Implements(goStringerType) {
+		fmt.Fprint(p.w, v.Interface().(fmt.GoStringer).GoString())
+		return
+	}
 	in := p.thisIndent(indent)
 	ni := p.nextIndent(indent)
 	switch v.Kind() {
@@ -186,7 +202,6 @@ func (p *Printer) reprValue(v reflect.Value, indent string) {
 		fmt.Fprintf(p.w, "&")
 		p.reprValue(v.Elem(), indent)
 	case reflect.String:
-		t := v.Type()
 		if t.Name() != "string" {
 			fmt.Fprintf(p.w, "%s(%q)", t, v.String())
 		} else {
@@ -199,7 +214,6 @@ func (p *Printer) reprValue(v reflect.Value, indent string) {
 			p.reprValue(v.Elem(), indent)
 		}
 	default:
-		t := v.Type()
 		if t.Name() != realKindName[t.Kind()] {
 			fmt.Fprintf(p.w, "%s(%v)", t, v)
 		} else {

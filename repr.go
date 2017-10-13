@@ -57,11 +57,14 @@ func NoIndent() Option { return Indent("") }
 // OmitEmpty sets whether empty field members should be omitted from output.
 func OmitEmpty(omitEmpty bool) Option { return func(o *Printer) { o.omitEmpty = omitEmpty } }
 
+func IgnoreGoStringer() Option { return func(o *Printer) { o.ignoreGoStringer = true } }
+
 // Printer represents structs in a printable manner.
 type Printer struct {
-	indent    string
-	omitEmpty bool
-	w         io.Writer
+	indent           string
+	omitEmpty        bool
+	ignoreGoStringer bool
+	w                io.Writer
 }
 
 // New creates a new Printer on w with the given Options.

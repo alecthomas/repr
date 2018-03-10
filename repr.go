@@ -59,11 +59,23 @@ func OmitEmpty(omitEmpty bool) Option { return func(o *Printer) { o.omitEmpty = 
 
 func IgnoreGoStringer() Option { return func(o *Printer) { o.ignoreGoStringer = true } }
 
+// Hide excludes the given types from representation, instead just printing the name of the type.
+func Hide(ts ...interface{}) Option {
+	return func(o *Printer) {
+		for _, t := range ts {
+			rt := reflect.Indirect(reflect.ValueOf(t)).Type()
+			fmt.Println(rt)
+			o.exclude[rt] = true
+		}
+	}
+}
+
 // Printer represents structs in a printable manner.
 type Printer struct {
 	indent           string
 	omitEmpty        bool
 	ignoreGoStringer bool
+	exclude          map[reflect.Type]bool
 	w                io.Writer
 }
 
@@ -73,6 +85,7 @@ func New(w io.Writer, options ...Option) *Printer {
 		w:         w,
 		indent:    "  ",
 		omitEmpty: true,
+		exclude:   map[reflect.Type]bool{},
 	}
 	for _, option := range options {
 		option(p)
@@ -116,6 +129,10 @@ func (p *Printer) Println(vs ...interface{}) {
 }
 
 func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
+	if p.exclude[v.Type()] {
+		fmt.Fprint(p.w, v.Type().Name())
+		return
+	}
 	t := v.Type()
 	// If we can't access a private field directly with reflection, try and do so via unsafe.
 	if !v.CanInterface() && v.CanAddr() {
@@ -155,10 +172,12 @@ func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
 			}
 			fmt.Fprintf(p.w, "%s}", in)
 		}
+
 	case reflect.Chan:
 		fmt.Fprintf(p.w, "make(")
 		fmt.Fprintf(p.w, "%s", v.Type())
 		fmt.Fprintf(p.w, ", %d)", v.Cap())
+
 	case reflect.Map:
 		fmt.Fprintf(p.w, "%s{", v.Type())
 		if p.indent != "" && v.Len() != 0 {
@@ -177,6 +196,7 @@ func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
 			}
 		}
 		fmt.Fprintf(p.w, "%s}", in)
+
 	case reflect.Struct:
 		fmt.Fprintf(p.w, "%s{", v.Type())
 		if p.indent != "" && v.NumField() != 0 {
@@ -197,6 +217,7 @@ func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
 			}
 		}
 		fmt.Fprintf(p.w, "%s}", indent)
+
 	case reflect.Ptr:
 		if v.IsNil() {
 			fmt.Fprintf(p.w, "nil")
@@ -204,18 +225,21 @@ func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
 		}
 		fmt.Fprintf(p.w, "&")
 		p.reprValue(v.Elem(), indent)
+
 	case reflect.String:
 		if t.Name() != "string" {
 			fmt.Fprintf(p.w, "%s(%q)", t, v.String())
 		} else {
 			fmt.Fprintf(p.w, "%q", v.String())
 		}
+
 	case reflect.Interface:
 		if v.IsNil() {
 			fmt.Fprintf(p.w, "interface {}(nil)")
 		} else {
 			p.reprValue(v.Elem(), indent)
 		}
+
 	default:
 		if t.Name() != realKindName[t.Kind()] {
 			fmt.Fprintf(p.w, "%s(%v)", t, v)
@@ -234,14 +258,27 @@ func String(v interface{}, options ...Option) string {
 	return w.String()
 }
 
-// Print v to os.Stdout, one per line.
-func Println(v ...interface{}) {
-	New(os.Stdout).Println(v...)
+func extractOptions(vs ...interface{}) (args []interface{}, options []Option) {
+	for _, v := range vs {
+		if o, ok := v.(Option); ok {
+			options = append(options, o)
+		} else {
+			args = append(args, v)
+		}
+	}
+	return
+}
+
+// Println prints v to os.Stdout, one per line.
+func Println(vs ...interface{}) {
+	args, options := extractOptions(vs...)
+	New(os.Stdout, options...).Println(args...)
 }
 
 // Print writes a representation of v to os.Stdout, separated by spaces.
-func Print(v ...interface{}) {
-	New(os.Stdout).Print(v...)
+func Print(vs ...interface{}) {
+	args, options := extractOptions(vs...)
+	New(os.Stdout, options...).Print(args...)
 }
 
 func isZero(v reflect.Value) bool {

@@ -129,6 +129,10 @@ func (p *Printer) Println(vs ...interface{}) {
 }
 
 func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
+	if (v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Chan || v.Kind() == reflect.Slice || v.Kind() == reflect.Func || v.Kind() == reflect.Interface) && v.IsNil() {
+		fmt.Fprint(p.w, "nil")
+		return
+	}
 	if p.exclude[v.Type()] {
 		fmt.Fprint(p.w, v.Type().Name())
 		return

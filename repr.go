@@ -64,7 +64,6 @@ func Hide(ts ...interface{}) Option {
 	return func(o *Printer) {
 		for _, t := range ts {
 			rt := reflect.Indirect(reflect.ValueOf(t)).Type()
-			fmt.Println(rt)
 			o.exclude[rt] = true
 		}
 	}
@@ -113,7 +112,7 @@ func (p *Printer) Print(vs ...interface{}) {
 		if i > 0 {
 			fmt.Fprint(p.w, " ")
 		}
-		p.reprValue(reflect.ValueOf(v), "")
+		p.reprValue(map[reflect.Value]bool{}, reflect.ValueOf(v), "")
 	}
 }
 
@@ -123,18 +122,25 @@ func (p *Printer) Println(vs ...interface{}) {
 		if i > 0 {
 			fmt.Fprint(p.w, " ")
 		}
-		p.reprValue(reflect.ValueOf(v), "")
+		p.reprValue(map[reflect.Value]bool{}, reflect.ValueOf(v), "")
 	}
 	fmt.Fprintln(p.w)
 }
 
-func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
+func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent string) { // nolint: gocyclo
+	if seen[v] {
+		fmt.Fprint(p.w, "...")
+		return
+	}
+	seen[v] = true
+	defer delete(seen, v)
+
 	if (v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Chan || v.Kind() == reflect.Slice || v.Kind() == reflect.Func || v.Kind() == reflect.Interface) && v.IsNil() {
 		fmt.Fprint(p.w, "nil")
 		return
 	}
 	if p.exclude[v.Type()] {
-		fmt.Fprint(p.w, v.Type().Name())
+		fmt.Fprintf(p.w, "%s...", v.Type().Name())
 		return
 	}
 	t := v.Type()
@@ -167,7 +173,7 @@ func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
 			for i := 0; i < v.Len(); i++ {
 				e := v.Index(i)
 				fmt.Fprintf(p.w, "%s", ni)
-				p.reprValue(e, ni)
+				p.reprValue(seen, e, ni)
 				if p.indent != "" {
 					fmt.Fprintf(p.w, ",\n")
 				} else if i < v.Len()-1 {
@@ -190,9 +196,9 @@ func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
 		for i, k := range v.MapKeys() {
 			kv := v.MapIndex(k)
 			fmt.Fprintf(p.w, "%s", ni)
-			p.reprValue(k, ni)
+			p.reprValue(seen, k, ni)
 			fmt.Fprintf(p.w, ": ")
-			p.reprValue(kv, ni)
+			p.reprValue(seen, kv, ni)
 			if p.indent != "" {
 				fmt.Fprintf(p.w, ",\n")
 			} else if i < v.Len()-1 {
@@ -213,7 +219,7 @@ func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
 				continue
 			}
 			fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
-			p.reprValue(f, ni)
+			p.reprValue(seen, f, ni)
 			if p.indent != "" {
 				fmt.Fprintf(p.w, ",\n")
 			} else if i < v.NumField()-1 {
@@ -228,7 +234,7 @@ func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
 			return
 		}
 		fmt.Fprintf(p.w, "&")
-		p.reprValue(v.Elem(), indent)
+		p.reprValue(seen, v.Elem(), indent)
 
 	case reflect.String:
 		if t.Name() != "string" {
@@ -241,7 +247,7 @@ func (p *Printer) reprValue(v reflect.Value, indent string) { // nolint: gocyclo
 		if v.IsNil() {
 			fmt.Fprintf(p.w, "interface {}(nil)")
 		} else {
-			p.reprValue(v.Elem(), indent)
+			p.reprValue(seen, v.Elem(), indent)
 		}
 
 	default:

@@ -152,7 +152,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		}
 	}
 	// Attempt to use fmt.GoStringer interface.
-	if t.Implements(goStringerType) {
+	if !p.ignoreGoStringer && t.Implements(goStringerType) {
 		fmt.Fprint(p.w, v.Interface().(fmt.GoStringer).GoString())
 		return
 	}

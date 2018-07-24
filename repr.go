@@ -14,33 +14,37 @@ import (
 	"unsafe"
 )
 
-// "Real" names of basic kinds, used to differentiate type aliases.
-var realKindName = map[reflect.Kind]string{
-	reflect.Bool:       "bool",
-	reflect.Int:        "int",
-	reflect.Int8:       "int8",
-	reflect.Int16:      "int16",
-	reflect.Int32:      "int32",
-	reflect.Int64:      "int64",
-	reflect.Uint:       "uint",
-	reflect.Uint8:      "uint8",
-	reflect.Uint16:     "uint16",
-	reflect.Uint32:     "uint32",
-	reflect.Uint64:     "uint64",
-	reflect.Uintptr:    "uintptr",
-	reflect.Float32:    "float32",
-	reflect.Float64:    "float64",
-	reflect.Complex64:  "complex64",
-	reflect.Complex128: "complex128",
-	reflect.Array:      "array",
-	reflect.Chan:       "chan",
-	reflect.Func:       "func",
-	reflect.Map:        "map",
-	reflect.Slice:      "slice",
-	reflect.String:     "string",
-}
+var (
+	// "Real" names of basic kinds, used to differentiate type aliases.
+	realKindName = map[reflect.Kind]string{
+		reflect.Bool:       "bool",
+		reflect.Int:        "int",
+		reflect.Int8:       "int8",
+		reflect.Int16:      "int16",
+		reflect.Int32:      "int32",
+		reflect.Int64:      "int64",
+		reflect.Uint:       "uint",
+		reflect.Uint8:      "uint8",
+		reflect.Uint16:     "uint16",
+		reflect.Uint32:     "uint32",
+		reflect.Uint64:     "uint64",
+		reflect.Uintptr:    "uintptr",
+		reflect.Float32:    "float32",
+		reflect.Float64:    "float64",
+		reflect.Complex64:  "complex64",
+		reflect.Complex128: "complex128",
+		reflect.Array:      "array",
+		reflect.Chan:       "chan",
+		reflect.Func:       "func",
+		reflect.Map:        "map",
+		reflect.Slice:      "slice",
+		reflect.String:     "string",
+	}
 
-var goStringerType = reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()
+	goStringerType = reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()
+
+	byteSliceType = reflect.TypeOf([]byte{})
+)
 
 // Default prints to os.Stdout with two space indentation.
 var Default = New(os.Stdout, Indent("  "))
@@ -144,6 +148,12 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		return
 	}
 	t := v.Type()
+
+	if t == byteSliceType {
+		fmt.Fprintf(p.w, "[]byte(%q)", v.Interface())
+		return
+	}
+
 	// If we can't access a private field directly with reflection, try and do so via unsafe.
 	if !v.CanInterface() && v.CanAddr() {
 		uv := reflect.NewAt(t, unsafe.Pointer(v.UnsafeAddr())).Elem()

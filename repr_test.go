@@ -74,7 +74,7 @@ func TestReprStructWithIndent(t *testing.T) {
 
 func TestReprByteArray(t *testing.T) {
 	b := []byte{1, 2, 3}
-	assert.Equal(t, `[]uint8{1, 2, 3}`, String(b))
+	assert.Equal(t, "[]byte(\"\\x01\\x02\\x03\")", String(b))
 }
 
 type privateTestStruct struct {

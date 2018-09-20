@@ -1,6 +1,7 @@
 package repr
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -96,4 +97,17 @@ func TestEnum(t *testing.T) {
 	v := Enum(1)
 	s := String(v)
 	assert.Equal(t, "repr.Enum(Value)", s)
+}
+
+func TestShowType(t *testing.T) {
+	a := map[string]privateTestStruct{"foo": {"bar"}}
+	s := String(a, AlwaysIncludeType(), Indent("  "))
+	t.Log(s)
+	assert.Equal(t, strings.TrimSpace(`
+map[string]repr.privateTestStruct{
+  string("foo"): repr.privateTestStruct{
+    a: string("bar"),
+  },
+}
+`), s)
 }

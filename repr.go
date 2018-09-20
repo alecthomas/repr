@@ -61,6 +61,7 @@ func NoIndent() Option { return Indent("") }
 // OmitEmpty sets whether empty field members should be omitted from output.
 func OmitEmpty(omitEmpty bool) Option { return func(o *Printer) { o.omitEmpty = omitEmpty } }
 
+// IgnoreGoStringer disables use of the .GoString() method.
 func IgnoreGoStringer() Option { return func(o *Printer) { o.ignoreGoStringer = true } }
 
 // Hide excludes the given types from representation, instead just printing the name of the type.
@@ -73,13 +74,17 @@ func Hide(ts ...interface{}) Option {
 	}
 }
 
+// AlwaysIncludeType always includes explicit type information for each item.
+func AlwaysIncludeType() Option { return func(o *Printer) { o.alwaysIncludeType = true } }
+
 // Printer represents structs in a printable manner.
 type Printer struct {
-	indent           string
-	omitEmpty        bool
-	ignoreGoStringer bool
-	exclude          map[reflect.Type]bool
-	w                io.Writer
+	indent            string
+	omitEmpty         bool
+	ignoreGoStringer  bool
+	alwaysIncludeType bool
+	exclude           map[reflect.Type]bool
+	w                 io.Writer
 }
 
 // New creates a new Printer on w with the given Options.
@@ -247,7 +252,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		p.reprValue(seen, v.Elem(), indent)
 
 	case reflect.String:
-		if t.Name() != "string" {
+		if t.Name() != "string" || p.alwaysIncludeType {
 			fmt.Fprintf(p.w, "%s(%q)", t, v.String())
 		} else {
 			fmt.Fprintf(p.w, "%q", v.String())
@@ -261,7 +266,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		}
 
 	default:
-		if t.Name() != realKindName[t.Kind()] {
+		if t.Name() != realKindName[t.Kind()] || p.alwaysIncludeType {
 			fmt.Fprintf(p.w, "%s(%v)", t, v)
 		} else {
 			fmt.Fprintf(p.w, "%v", v)

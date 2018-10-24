@@ -87,6 +87,18 @@ func TestReprPrivateField(t *testing.T) {
 	assert.Equal(t, `repr.privateTestStruct{a: "hello"}`, String(s))
 }
 
+func TestReprNilAlone(t *testing.T) {
+	var err error
+	s := String(err)
+	assert.Equal(t, "nil", s)
+}
+
+func TestReprNilInsideArray(t *testing.T) {
+	arr := []*privateTestStruct{{"hello"}, nil}
+	s := String(arr)
+	assert.Equal(t, "[]*repr.privateTestStruct{&repr.privateTestStruct{a: \"hello\"}, nil}", s)
+}
+
 type Enum int
 
 func (e Enum) String() string {

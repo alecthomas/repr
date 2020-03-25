@@ -11,6 +11,7 @@ import (
 	"io"
 	"os"
 	"reflect"
+	"sort"
 	"unsafe"
 )
 
@@ -208,7 +209,11 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		if p.indent != "" && v.Len() != 0 {
 			fmt.Fprintf(p.w, "\n")
 		}
-		for i, k := range v.MapKeys() {
+		keys := v.MapKeys()
+		sort.Slice(keys, func(i, j int) bool {
+			return keys[i].String() < keys[j].String()
+		})
+		for i, k := range keys {
 			kv := v.MapIndex(k)
 			fmt.Fprintf(p.w, "%s", ni)
 			p.reprValue(seen, k, ni)

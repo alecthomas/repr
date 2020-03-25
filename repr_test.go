@@ -45,8 +45,10 @@ func TestReprEmptyMap(t *testing.T) {
 }
 
 func TestReprMap(t *testing.T) {
-	m := map[string]int{"a": 1}
-	assert.Equal(t, "map[string]int{\"a\": 1}", String(m))
+	m := map[string]int{"b": 3, "a": 1, "c": 5}
+	for i := 0; i < 1000; i++ {
+		assert.Equal(t, "map[string]int{\"a\": 1, \"b\": 3, \"c\": 5}", String(m))
+	}
 }
 
 func TestReprStructWithIndent(t *testing.T) {

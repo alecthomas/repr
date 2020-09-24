@@ -12,6 +12,7 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"time"
 	"unsafe"
 )
 
@@ -228,26 +229,29 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		fmt.Fprintf(p.w, "%s}", in)
 
 	case reflect.Struct:
-		fmt.Fprintf(p.w, "%s{", v.Type())
-		if p.indent != "" && v.NumField() != 0 {
-			fmt.Fprintf(p.w, "\n")
-		}
-		for i := 0; i < v.NumField(); i++ {
-			t := v.Type().Field(i)
-			f := v.Field(i)
-			if p.omitEmpty && isZero(f) {
-				continue
+		if td, ok := v.Interface().(time.Time); ok {
+			timeToGo(p.w, td)
+		} else {
+			fmt.Fprintf(p.w, "%s{", v.Type())
+			if p.indent != "" && v.NumField() != 0 {
+				fmt.Fprintf(p.w, "\n")
 			}
-			fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
-			p.reprValue(seen, f, ni)
-			if p.indent != "" {
-				fmt.Fprintf(p.w, ",\n")
-			} else if i < v.NumField()-1 {
-				fmt.Fprintf(p.w, ", ")
+			for i := 0; i < v.NumField(); i++ {
+				t := v.Type().Field(i)
+				f := v.Field(i)
+				if p.omitEmpty && isZero(f) {
+					continue
+				}
+				fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
+				p.reprValue(seen, f, ni)
+				if p.indent != "" {
+					fmt.Fprintf(p.w, ",\n")
+				} else if i < v.NumField()-1 {
+					fmt.Fprintf(p.w, ", ")
+				}
 			}
+			fmt.Fprintf(p.w, "%s}", indent)
 		}
-		fmt.Fprintf(p.w, "%s}", indent)
-
 	case reflect.Ptr:
 		if v.IsNil() {
 			fmt.Fprintf(p.w, "nil")
@@ -327,4 +331,21 @@ func isZero(v reflect.Value) bool {
 		return v.IsNil()
 	}
 	return false
+}
+
+func timeToGo(w io.Writer, t time.Time) {
+	var zone string
+	switch loc := t.Location(); loc {
+	case nil:
+		zone = "nil"
+	case time.UTC:
+		zone = "time.UTC"
+	case time.Local:
+		zone = "time.Local"
+	default:
+		n, off := t.Zone()
+		zone = fmt.Sprintf("time.FixedZone(%q, %d)", n, off)
+	}
+	y, m, d := t.Date()
+	fmt.Fprintf(w, `time.Date(%d, %d, %d, %d, %d, %d, %d, %s)`, y, m, d, t.Hour(), t.Minute(), t.Second(), t.Nanosecond(), zone)
 }

@@ -3,9 +3,14 @@ package repr
 import (
 	"strings"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
+	"time"
 )
+
+func equal(t *testing.T, want, have string) {
+	if want != have {
+		t.Errorf("\nWant: %q\nHave: %q", want, have)
+	}
+}
 
 type anotherStruct struct {
 	A []int
@@ -17,37 +22,41 @@ type testStruct struct {
 	A anotherStruct
 }
 
+type timeStruct struct {
+	Date time.Time
+}
+
 func TestReprEmptyArray(t *testing.T) {
-	assert.Equal(t, "[]string{}", String([]string{}, OmitEmpty(false)))
+	equal(t, "[]string{}", String([]string{}, OmitEmpty(false)))
 }
 
 func TestReprStringArray(t *testing.T) {
-	assert.Equal(t, "[]string{\"a\", \"b\"}", String([]string{"a", "b"}))
+	equal(t, "[]string{\"a\", \"b\"}", String([]string{"a", "b"}))
 }
 
 func TestReprIntArray(t *testing.T) {
-	assert.Equal(t, "[]int{1, 2}", String([]int{1, 2}))
+	equal(t, "[]int{1, 2}", String([]int{1, 2}))
 }
 
 func TestReprPointerToInt(t *testing.T) {
 	pi := new(int)
 	*pi = 13
-	assert.Equal(t, `&13`, String(pi))
+	equal(t, `&13`, String(pi))
 }
 
 func TestReprChannel(t *testing.T) {
 	ch := make(<-chan map[string]*testStruct, 1)
-	assert.Equal(t, `make(<-chan map[string]*repr.testStruct, 1)`, String(ch))
+	equal(t, `make(<-chan map[string]*repr.testStruct, 1)`, String(ch))
 }
 
 func TestReprEmptyMap(t *testing.T) {
-	assert.Equal(t, "map[string]bool{}", String(map[string]bool{}))
+	equal(t, "map[string]bool{}", String(map[string]bool{}))
 }
 
 func TestReprMap(t *testing.T) {
 	m := map[string]int{"b": 3, "a": 1, "c": 5}
 	for i := 0; i < 1000; i++ {
-		assert.Equal(t, "map[string]int{\"a\": 1, \"b\": 3, \"c\": 5}", String(m))
+		equal(t, "map[string]int{\"a\": 1, \"b\": 3, \"c\": 5}", String(m))
 	}
 }
 
@@ -61,7 +70,7 @@ func TestReprStructWithIndent(t *testing.T) {
 			A: []int{1, 2, 3},
 		},
 	}
-	assert.Equal(t, `&repr.testStruct{
+	equal(t, `&repr.testStruct{
   S: "String",
   I: &13,
   A: repr.anotherStruct{
@@ -72,12 +81,11 @@ func TestReprStructWithIndent(t *testing.T) {
     },
   },
 }`, String(s, Indent("  ")))
-
 }
 
 func TestReprByteArray(t *testing.T) {
 	b := []byte{1, 2, 3}
-	assert.Equal(t, "[]byte(\"\\x01\\x02\\x03\")", String(b))
+	equal(t, "[]byte(\"\\x01\\x02\\x03\")", String(b))
 }
 
 type privateTestStruct struct {
@@ -86,19 +94,19 @@ type privateTestStruct struct {
 
 func TestReprPrivateField(t *testing.T) {
 	s := privateTestStruct{"hello"}
-	assert.Equal(t, `repr.privateTestStruct{a: "hello"}`, String(s))
+	equal(t, `repr.privateTestStruct{a: "hello"}`, String(s))
 }
 
 func TestReprNilAlone(t *testing.T) {
 	var err error
 	s := String(err)
-	assert.Equal(t, "nil", s)
+	equal(t, "nil", s)
 }
 
 func TestReprNilInsideArray(t *testing.T) {
 	arr := []*privateTestStruct{{"hello"}, nil}
 	s := String(arr)
-	assert.Equal(t, "[]*repr.privateTestStruct{&repr.privateTestStruct{a: \"hello\"}, nil}", s)
+	equal(t, "[]*repr.privateTestStruct{&repr.privateTestStruct{a: \"hello\"}, nil}", s)
 }
 
 type Enum int
@@ -110,18 +118,43 @@ func (e Enum) String() string {
 func TestEnum(t *testing.T) {
 	v := Enum(1)
 	s := String(v)
-	assert.Equal(t, "repr.Enum(Value)", s)
+	equal(t, "repr.Enum(Value)", s)
 }
 
 func TestShowType(t *testing.T) {
 	a := map[string]privateTestStruct{"foo": {"bar"}}
 	s := String(a, AlwaysIncludeType(), Indent("  "))
-	t.Log(s)
-	assert.Equal(t, strings.TrimSpace(`
+	equal(t, strings.TrimSpace(`
 map[string]repr.privateTestStruct{
   string("foo"): repr.privateTestStruct{
     a: string("bar"),
   },
 }
 `), s)
+}
+
+func TestReprTime(t *testing.T) {
+	loc, err := time.LoadLocation("Australia/Sydney")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	arr := []*timeStruct{
+		{Date: time.Date(2001, 5, 13, 21, 15, 54, 987654, time.FixedZone("Repr", 60*60*3))},
+		nil,
+		{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.UTC)},
+		{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, loc)},
+	}
+	const want = "[]*repr.timeStruct{&repr.timeStruct{Date: time.Date(2001, 5, 13, 21, 15, 54, 987654, time.FixedZone(\"Repr\", 10800))}, nil, &repr.timeStruct{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.UTC)}, &repr.timeStruct{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.FixedZone(\"AEDT\", 39600))}}"
+	s := String(arr)
+	equal(t, want, s)
+
+	arr = []*timeStruct{
+		{Date: time.Date(2001, 5, 13, 21, 15, 54, 987654, time.FixedZone("Repr", 10800))},
+		nil,
+		{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.UTC)},
+		{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.FixedZone("AEDT", 39600))},
+	}
+	s = String(arr)
+	equal(t, want, s)
 }

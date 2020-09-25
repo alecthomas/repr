@@ -334,6 +334,11 @@ func isZero(v reflect.Value) bool {
 }
 
 func timeToGo(w io.Writer, t time.Time) {
+	if t.IsZero() {
+		fmt.Fprint(w, "time.Time{}")
+		return
+	}
+
 	var zone string
 	switch loc := t.Location(); loc {
 	case nil:

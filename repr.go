@@ -212,7 +212,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		}
 		keys := v.MapKeys()
 		sort.Slice(keys, func(i, j int) bool {
-			return keys[i].String() < keys[j].String()
+			return fmt.Sprint(keys[i]) < fmt.Sprint(keys[j])
 		})
 		for i, k := range keys {
 			kv := v.MapIndex(k)

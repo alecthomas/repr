@@ -60,6 +60,13 @@ func TestReprMap(t *testing.T) {
 	}
 }
 
+func TestReprIntMap(t *testing.T) {
+	m := map[int]string{3: "b", 1: "a", 5: "c"}
+	for i := 0; i < 1000; i++ {
+		equal(t, "map[int]string{1: \"a\", 3: \"b\", 5: \"c\"}", String(m))
+	}
+}
+
 func TestReprStructWithIndent(t *testing.T) {
 	pi := new(int)
 	*pi = 13

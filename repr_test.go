@@ -174,3 +174,16 @@ func TestReprTime(t *testing.T) {
 	s = String(arr)
 	equal(t, want, s)
 }
+
+func TestRecursiveIssue3(t *testing.T) {
+	type data struct {
+		parent   *data
+		children []*data
+	}
+	child := &data{}
+	root := &data{children: []*data{child}}
+	child.parent = root
+	want := "&repr.data{children: []*repr.data{{parent: &..., }}}"
+	have := String(root)
+	equal(t, want, have)
+}

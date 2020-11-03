@@ -7,6 +7,7 @@ import (
 )
 
 func equal(t *testing.T, want, have string) {
+	t.Helper()
 	if want != have {
 		t.Errorf("\nWant: %q\nHave: %q", want, have)
 	}
@@ -110,10 +111,16 @@ func TestReprNilAlone(t *testing.T) {
 	equal(t, "nil", s)
 }
 
+func TestExplicitTypes(t *testing.T) {
+	arr := []*privateTestStruct{{"hello"}, nil}
+	s := String(arr, ExplicitTypes(true))
+	equal(t, "[]*repr.privateTestStruct{&repr.privateTestStruct{a: \"hello\"}, nil}", s)
+}
+
 func TestReprNilInsideArray(t *testing.T) {
 	arr := []*privateTestStruct{{"hello"}, nil}
 	s := String(arr)
-	equal(t, "[]*repr.privateTestStruct{&repr.privateTestStruct{a: \"hello\"}, nil}", s)
+	equal(t, "[]*repr.privateTestStruct{{a: \"hello\"}, nil}", s)
 }
 
 type Enum int
@@ -153,7 +160,7 @@ func TestReprTime(t *testing.T) {
 		{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, loc)},
 		{Date: time.Time{}},
 	}
-	const want = "[]*repr.timeStruct{&repr.timeStruct{Date: time.Date(2001, 5, 13, 21, 15, 54, 987654, time.FixedZone(\"Repr\", 10800))}, nil, &repr.timeStruct{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.UTC)}, &repr.timeStruct{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.FixedZone(\"AEDT\", 39600))}, &repr.timeStruct{Date: time.Time{}}}"
+	const want = "[]*repr.timeStruct{{Date: time.Date(2001, 5, 13, 21, 15, 54, 987654, time.FixedZone(\"Repr\", 10800))}, nil, {Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.UTC)}, {Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.FixedZone(\"AEDT\", 39600))}, {Date: time.Time{}}}"
 	s := String(arr)
 	equal(t, want, s)
 

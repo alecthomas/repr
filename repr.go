@@ -63,6 +63,9 @@ func NoIndent() Option { return Indent("") }
 // OmitEmpty sets whether empty field members should be omitted from output.
 func OmitEmpty(omitEmpty bool) Option { return func(o *Printer) { o.omitEmpty = omitEmpty } }
 
+// ExplicitTypes adds explicit typing to slice and map struct values that would normally be inferred by Go.
+func ExplicitTypes(ok bool) Option { return func(o *Printer) { o.explicitTypes = true } }
+
 // IgnoreGoStringer disables use of the .GoString() method.
 func IgnoreGoStringer() Option { return func(o *Printer) { o.ignoreGoStringer = true } }
 
@@ -85,6 +88,7 @@ type Printer struct {
 	omitEmpty         bool
 	ignoreGoStringer  bool
 	alwaysIncludeType bool
+	explicitTypes     bool
 	exclude           map[reflect.Type]bool
 	w                 io.Writer
 }
@@ -123,7 +127,7 @@ func (p *Printer) Print(vs ...interface{}) {
 		if i > 0 {
 			fmt.Fprint(p.w, " ")
 		}
-		p.reprValue(map[reflect.Value]bool{}, reflect.ValueOf(v), "")
+		p.reprValue(map[reflect.Value]bool{}, reflect.ValueOf(v), "", true)
 	}
 }
 
@@ -133,12 +137,12 @@ func (p *Printer) Println(vs ...interface{}) {
 		if i > 0 {
 			fmt.Fprint(p.w, " ")
 		}
-		p.reprValue(map[reflect.Value]bool{}, reflect.ValueOf(v), "")
+		p.reprValue(map[reflect.Value]bool{}, reflect.ValueOf(v), "", true)
 	}
 	fmt.Fprintln(p.w)
 }
 
-func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent string) { // nolint: gocyclo
+func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent string, showType bool) { // nolint: gocyclo
 	if seen[v] {
 		fmt.Fprint(p.w, "...")
 		return
@@ -190,7 +194,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 			for i := 0; i < v.Len(); i++ {
 				e := v.Index(i)
 				fmt.Fprintf(p.w, "%s", ni)
-				p.reprValue(seen, e, ni)
+				p.reprValue(seen, e, ni, p.alwaysIncludeType || p.explicitTypes)
 				if p.indent != "" {
 					fmt.Fprintf(p.w, ",\n")
 				} else if i < v.Len()-1 {
@@ -217,9 +221,9 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		for i, k := range keys {
 			kv := v.MapIndex(k)
 			fmt.Fprintf(p.w, "%s", ni)
-			p.reprValue(seen, k, ni)
+			p.reprValue(seen, k, ni, p.alwaysIncludeType || p.explicitTypes)
 			fmt.Fprintf(p.w, ": ")
-			p.reprValue(seen, kv, ni)
+			p.reprValue(seen, kv, ni, true)
 			if p.indent != "" {
 				fmt.Fprintf(p.w, ",\n")
 			} else if i < v.Len()-1 {
@@ -232,7 +236,11 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		if td, ok := v.Interface().(time.Time); ok {
 			timeToGo(p.w, td)
 		} else {
-			fmt.Fprintf(p.w, "%s{", v.Type())
+			if showType {
+				fmt.Fprintf(p.w, "%s{", v.Type())
+			} else {
+				fmt.Fprint(p.w, "{")
+			}
 			if p.indent != "" && v.NumField() != 0 {
 				fmt.Fprintf(p.w, "\n")
 			}
@@ -243,7 +251,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 					continue
 				}
 				fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
-				p.reprValue(seen, f, ni)
+				p.reprValue(seen, f, ni, true)
 				if p.indent != "" {
 					fmt.Fprintf(p.w, ",\n")
 				} else if i < v.NumField()-1 {
@@ -257,8 +265,10 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 			fmt.Fprintf(p.w, "nil")
 			return
 		}
-		fmt.Fprintf(p.w, "&")
-		p.reprValue(seen, v.Elem(), indent)
+		if showType {
+			fmt.Fprintf(p.w, "&")
+		}
+		p.reprValue(seen, v.Elem(), indent, showType)
 
 	case reflect.String:
 		if t.Name() != "string" || p.alwaysIncludeType {
@@ -271,7 +281,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		if v.IsNil() {
 			fmt.Fprintf(p.w, "interface {}(nil)")
 		} else {
-			p.reprValue(seen, v.Elem(), indent)
+			p.reprValue(seen, v.Elem(), indent, true)
 		}
 
 	default:

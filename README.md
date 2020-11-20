@@ -1,4 +1,4 @@
-# Python's repr() for Go [![](https://godoc.org/github.com/alecthomas/repr?status.svg)](http://godoc.org/github.com/alecthomas/repr) [![Build Status](https://travis-ci.org/alecthomas/repr.png)](https://travis-ci.org/alecthomas/repr)
+# Python's repr() for Go [![](https://godoc.org/github.com/alecthomas/repr?status.svg)](http://godoc.org/github.com/alecthomas/repr) [![CircleCI](https://img.shields.io/circleci/project/github/alecthomas/repr.svg)](https://circleci.com/gh/alecthomas/repr)
 
 This package attempts to represent Go values in a form that can be used almost directly in Go source
 code.

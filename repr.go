@@ -161,7 +161,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 	t := v.Type()
 
 	if t == byteSliceType {
-		fmt.Fprintf(p.w, "[]byte(%q)", v.Interface())
+		fmt.Fprintf(p.w, "[]byte(%q)", v.Bytes())
 		return
 	}
 

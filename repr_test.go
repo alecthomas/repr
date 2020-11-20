@@ -1,6 +1,8 @@
 package repr
 
 import (
+	"bytes"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -186,4 +188,24 @@ func TestRecursiveIssue3(t *testing.T) {
 	want := "&repr.data{children: []*repr.data{{parent: &..., }}}"
 	have := String(root)
 	equal(t, want, have)
+}
+
+type MyBuffer struct {
+	buf *bytes.Buffer
+}
+
+func TestReprPrivateBytes(t *testing.T) {
+	mb := MyBuffer{
+		buf: bytes.NewBufferString("Hi th3re!"),
+	}
+	s := String(mb)
+
+	switch v := runtime.Version(); {
+	case strings.Contains(v, "go1.9"):
+		equal(t, "repr.MyBuffer{buf: &bytes.Buffer{buf: []byte(\"Hi th3re!\"), bootstrap: [64]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}}}", s)
+	case strings.Contains(v, "go1.10"), strings.Contains(v, "go1.11"):
+		equal(t, "repr.MyBuffer{buf: &bytes.Buffer{buf: []byte(\"Hi th3re!\"), bootstrap: [64]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, }}", s)
+	default:
+		equal(t, "repr.MyBuffer{buf: &bytes.Buffer{buf: []byte(\"Hi th3re!\"), }}", s)
+	}
 }

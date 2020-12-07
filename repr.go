@@ -233,33 +233,39 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		fmt.Fprintf(p.w, "%s}", in)
 
 	case reflect.Struct:
-		if td, ok := v.Interface().(time.Time); ok {
-			timeToGo(p.w, td)
-		} else {
-			if showType {
-				fmt.Fprintf(p.w, "%s{", v.Type())
-			} else {
-				fmt.Fprint(p.w, "{")
+
+		if v.CanInterface() {
+			switch tv := v.Interface().(type) {
+			case time.Time:
+				timeToGo(p.w, tv)
+				return
 			}
-			if p.indent != "" && v.NumField() != 0 {
-				fmt.Fprintf(p.w, "\n")
-			}
-			for i := 0; i < v.NumField(); i++ {
-				t := v.Type().Field(i)
-				f := v.Field(i)
-				if p.omitEmpty && isZero(f) {
-					continue
-				}
-				fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
-				p.reprValue(seen, f, ni, true)
-				if p.indent != "" {
-					fmt.Fprintf(p.w, ",\n")
-				} else if i < v.NumField()-1 {
-					fmt.Fprintf(p.w, ", ")
-				}
-			}
-			fmt.Fprintf(p.w, "%s}", indent)
 		}
+
+		if showType {
+			fmt.Fprintf(p.w, "%s{", v.Type())
+		} else {
+			fmt.Fprint(p.w, "{")
+		}
+		if p.indent != "" && v.NumField() != 0 {
+			fmt.Fprintf(p.w, "\n")
+		}
+		for i := 0; i < v.NumField(); i++ {
+			t := v.Type().Field(i)
+			f := v.Field(i)
+			if p.omitEmpty && isZero(f) {
+				continue
+			}
+			fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
+			p.reprValue(seen, f, ni, true)
+			if p.indent != "" {
+				fmt.Fprintf(p.w, ",\n")
+			} else if i < v.NumField()-2 {
+				fmt.Fprintf(p.w, ", ")
+			}
+		}
+		fmt.Fprintf(p.w, "%s}", indent)
+
 	case reflect.Ptr:
 		if v.IsNil() {
 			fmt.Fprintf(p.w, "nil")

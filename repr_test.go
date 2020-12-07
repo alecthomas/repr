@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/alecthomas/repr/internal"
 )
 
 func equal(t *testing.T, want, have string) {
@@ -185,7 +187,7 @@ func TestRecursiveIssue3(t *testing.T) {
 	child := &data{}
 	root := &data{children: []*data{child}}
 	child.parent = root
-	want := "&repr.data{children: []*repr.data{{parent: &..., }}}"
+	want := "&repr.data{children: []*repr.data{{parent: &...}}}"
 	have := String(root)
 	equal(t, want, have)
 }
@@ -208,4 +210,11 @@ func TestReprPrivateBytes(t *testing.T) {
 	default:
 		equal(t, "repr.MyBuffer{buf: &bytes.Buffer{buf: []byte(\"Hi th3re!\"), }}", s)
 	}
+}
+
+func TestReprInternalTime(t *testing.T) {
+	obj := internal.MakeStructA("s", time.Date(2020, 12, 1, 10, 13, 45, 0, time.UTC))
+	s := String(obj)
+
+	equal(t, "internal.StructA{String1: \"s\", string2: \"s2\", Time1: time.Date(2020, 12, 1, 10, 13, 45, 0, time.UTC)time2: time.Time{ext: 63742421625}}", s)
 }

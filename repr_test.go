@@ -125,6 +125,32 @@ func TestReprNilInsideArray(t *testing.T) {
 	equal(t, "[]*repr.privateTestStruct{{a: \"hello\"}, nil}", s)
 }
 
+func TestReprEmptySlice(t *testing.T) {
+	a := []int{}
+	s := String(a)
+	equal(t, "[]int{}", s)
+}
+
+func TestReprNilSlice(t *testing.T) {
+	var a []int
+	s := String(a)
+	equal(t, "nil", s)
+}
+
+type intSliceStruct struct{ f []int }
+
+func TestReprEmptySliceStruct(t *testing.T) {
+	a := intSliceStruct{f: []int{}}
+	s := String(a)
+	equal(t, "repr.intSliceStruct{f: []int{}}", s)
+}
+
+func TestReprNilSliceStruct(t *testing.T) {
+	var a intSliceStruct
+	s := String(a)
+	equal(t, "repr.intSliceStruct{}", s)
+}
+
 type Enum int
 
 func (e Enum) String() string {

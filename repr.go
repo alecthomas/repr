@@ -181,9 +181,6 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 	ni := p.nextIndent(indent)
 	switch v.Kind() {
 	case reflect.Slice, reflect.Array:
-		if p.omitEmpty && v.Len() == 0 {
-			return
-		}
 		fmt.Fprintf(p.w, "%s{", v.Type())
 		if v.Len() == 0 {
 			fmt.Fprint(p.w, "}")

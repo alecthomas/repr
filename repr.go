@@ -69,6 +69,9 @@ func ExplicitTypes(ok bool) Option { return func(o *Printer) { o.explicitTypes =
 // IgnoreGoStringer disables use of the .GoString() method.
 func IgnoreGoStringer() Option { return func(o *Printer) { o.ignoreGoStringer = true } }
 
+// IgnorePrivate disables private field members from output.
+func IgnorePrivate() Option { return func(o *Printer) { o.ignorePrivate = true } }
+
 // Hide excludes the given types from representation, instead just printing the name of the type.
 func Hide(ts ...interface{}) Option {
 	return func(o *Printer) {
@@ -87,6 +90,7 @@ type Printer struct {
 	indent            string
 	omitEmpty         bool
 	ignoreGoStringer  bool
+	ignorePrivate     bool
 	alwaysIncludeType bool
 	explicitTypes     bool
 	exclude           map[reflect.Type]bool
@@ -244,11 +248,41 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 			for i := 0; i < v.NumField(); i++ {
 				t := v.Type().Field(i)
 				f := v.Field(i)
+				// skip private fields
+				if p.ignorePrivate && !f.CanInterface() {
+					continue
+				}
 				if p.omitEmpty && isZero(f) {
 					continue
 				}
 				fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
 				p.reprValue(seen, f, ni, true)
+
+				// if private fields should be ignored, look up if a public
+				// field need to be displayed and breaks at the first public
+				// field found preventing from looping over all remaining
+				// fields.
+				//
+				// If no other field need to be displayed, continue and do
+				// not print a comma.
+				//
+				// This prevents from having a trailing comma if a private
+				// field ends a structure.
+				if p.ignorePrivate {
+					nc := false
+					for j := i + 1; j < v.NumField(); j++ {
+						if v.Field(j).CanInterface() {
+							nc = true
+							// exit for j loop
+							break
+						}
+					}
+					// Skip comma display if no remaining public field found.
+					if !nc {
+						continue
+					}
+				}
+
 				if p.indent != "" {
 					fmt.Fprintf(p.w, ",\n")
 				} else if i < v.NumField()-1 {

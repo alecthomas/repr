@@ -102,6 +102,23 @@ func TestReprPrivateField(t *testing.T) {
 	equal(t, `repr.privateTestStruct{a: "hello"}`, String(s))
 }
 
+type mixedTestStruct struct {
+	A  string
+	b  string
+	C  string
+	_D string
+}
+
+func TestReprPrivateMixed(t *testing.T) {
+	s := mixedTestStruct{"hello", "world", "goodbye", "cruel world"}
+	equal(t, `repr.mixedTestStruct{A: "hello", b: "world", C: "goodbye", _D: "cruel world"}`, String(s))
+}
+
+func TestReprPrivateMixedIgnorePrivate(t *testing.T) {
+	s := mixedTestStruct{"hello", "world", "goodbye", "cruel world"}
+	equal(t, `repr.mixedTestStruct{A: "hello", C: "goodbye"}`, String(s, IgnorePrivate()))
+}
+
 func TestReprNilAlone(t *testing.T) {
 	var err error
 	s := String(err)

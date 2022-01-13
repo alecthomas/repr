@@ -5,7 +5,6 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 )
 
 func equal(t *testing.T, want, have string) {
@@ -23,10 +22,6 @@ type testStruct struct {
 	S string
 	I *int
 	A anotherStruct
-}
-
-type timeStruct struct {
-	Date time.Time
 }
 
 func TestReprEmptyArray(t *testing.T) {
@@ -173,34 +168,6 @@ map[string]repr.privateTestStruct{
   },
 }
 `), s)
-}
-
-func TestReprTime(t *testing.T) {
-	loc, err := time.LoadLocation("Australia/Sydney")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	arr := []*timeStruct{
-		{Date: time.Date(2001, 5, 13, 21, 15, 54, 987654, time.FixedZone("Repr", 60*60*3))},
-		nil,
-		{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.UTC)},
-		{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, loc)},
-		{Date: time.Time{}},
-	}
-	const want = "[]*repr.timeStruct{{Date: time.Date(2001, 5, 13, 21, 15, 54, 987654, time.FixedZone(\"Repr\", 10800))}, nil, {Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.UTC)}, {Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.FixedZone(\"AEDT\", 39600))}, {Date: time.Time{}}}"
-	s := String(arr)
-	equal(t, want, s)
-
-	arr = []*timeStruct{
-		{Date: time.Date(2001, 5, 13, 21, 15, 54, 987654, time.FixedZone("Repr", 10800))},
-		nil,
-		{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.UTC)},
-		{Date: time.Date(2011, 3, 23, 11, 15, 54, 987654, time.FixedZone("AEDT", 39600))},
-		{Date: time.Time{}},
-	}
-	s = String(arr)
-	equal(t, want, s)
 }
 
 func TestRecursiveIssue3(t *testing.T) {

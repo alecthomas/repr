@@ -230,7 +230,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		fmt.Fprintf(p.w, "%s}", in)
 
 	case reflect.Struct:
-		if td, ok := v.Interface().(time.Time); ok {
+		if td, ok := asTime(v); ok {
 			timeToGo(p.w, td)
 		} else {
 			if showType {
@@ -288,6 +288,14 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 			fmt.Fprintf(p.w, "%v", v)
 		}
 	}
+}
+
+func asTime(v reflect.Value) (time.Time, bool) {
+	if !v.CanInterface() {
+		return time.Time{}, false
+	}
+	t, ok := v.Interface().(time.Time)
+	return t, ok
 }
 
 // String returns a string representing v.

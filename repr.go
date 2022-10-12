@@ -244,7 +244,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 			for i := 0; i < v.NumField(); i++ {
 				t := v.Type().Field(i)
 				f := v.Field(i)
-				if p.omitEmpty && isZero(f) {
+				if p.omitEmpty && f.IsZero() {
 					continue
 				}
 				fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
@@ -328,24 +328,6 @@ func Println(vs ...interface{}) {
 func Print(vs ...interface{}) {
 	args, options := extractOptions(vs...)
 	New(os.Stdout, options...).Print(args...)
-}
-
-func isZero(v reflect.Value) bool {
-	switch v.Kind() {
-	case reflect.Array, reflect.String:
-		return v.Len() == 0
-	case reflect.Bool:
-		return !v.Bool()
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return v.Int() == 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		return v.Uint() == 0
-	case reflect.Float32, reflect.Float64:
-		return v.Float() == 0
-	case reflect.Interface, reflect.Map, reflect.Ptr, reflect.Slice:
-		return v.IsNil()
-	}
-	return false
 }
 
 func timeToGo(w io.Writer, t time.Time) {

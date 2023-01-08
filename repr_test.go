@@ -202,3 +202,15 @@ func TestReprPrivateBytes(t *testing.T) {
 		equal(t, "repr.MyBuffer{buf: &bytes.Buffer{buf: []byte(\"Hi th3re!\"), }}", s)
 	}
 }
+
+func TestReprAnyNumeric(t *testing.T) {
+	var value = []any{float64(123)}
+	equal(t, "[]any{float64(123)}", String(value))
+}
+
+func TestReprFunc(t *testing.T) {
+	in := func(any) {}
+	equal(t, "func(any)", String(in))
+	inout := func(interface{}) (any, error) { panic("not implemented") }
+	equal(t, "func(any) (any, error)", String(inout))
+}

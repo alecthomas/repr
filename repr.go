@@ -74,6 +74,11 @@ func IgnoreGoStringer() Option { return func(o *Printer) { o.ignoreGoStringer = 
 // IgnorePrivate disables private field members from output.
 func IgnorePrivate() Option { return func(o *Printer) { o.ignorePrivate = true } }
 
+// ScalarLiterals forces the use of literals for scalars, rather than a string representation if available.
+//
+// For example, `time.Hour` will be printed as `time.Duration(3600000000000)` rather than `time.Duration(1h0m0s)`.
+func ScalarLiterals() Option { return func(o *Printer) { o.useLiterals = true } }
+
 // Hide excludes the given types from representation, instead just printing the name of the type.
 func Hide(ts ...any) Option {
 	return func(o *Printer) {
@@ -97,6 +102,7 @@ type Printer struct {
 	explicitTypes     bool
 	exclude           map[reflect.Type]bool
 	w                 io.Writer
+	useLiterals       bool
 }
 
 // New creates a new Printer on w with the given Options.
@@ -322,10 +328,14 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		fmt.Fprint(p.w, substAny(v.Type()))
 
 	default:
+		value := fmt.Sprintf("%v", v)
+		if p.useLiterals {
+			value = fmt.Sprintf("%#v", v)
+		}
 		if t.Name() != realKindName[t.Kind()] || p.alwaysIncludeType || isAnyValue {
-			fmt.Fprintf(p.w, "%s(%v)", t, v)
+			fmt.Fprintf(p.w, "%s(%s)", t, value)
 		} else {
-			fmt.Fprintf(p.w, "%v", v)
+			fmt.Fprintf(p.w, "%s", value)
 		}
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
 
 func equal(t *testing.T, want, have string) {
@@ -230,4 +231,9 @@ func TestReprFunc(t *testing.T) {
 	equal(t, "func(any)", String(in))
 	inout := func(interface{}) (any, error) { panic("not implemented") }
 	equal(t, "func(any) (any, error)", String(inout))
+}
+
+func TestScalarLiterals(t *testing.T) {
+	d := time.Second
+	equal(t, "time.Duration(1000000000)", String(d, ScalarLiterals()))
 }

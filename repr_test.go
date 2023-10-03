@@ -2,6 +2,7 @@ package repr
 
 import (
 	"bytes"
+	"fmt"
 	"runtime"
 	"strings"
 	"testing"
@@ -19,10 +20,28 @@ type anotherStruct struct {
 	A []int
 }
 
+func (anotherStruct) String() string { return "anotherStruct" }
+
 type testStruct struct {
 	S string
 	I *int
 	A anotherStruct
+}
+
+type testStructWithInterfaceField struct {
+	S string
+	I fmt.Stringer
+}
+
+func TestHide(t *testing.T) {
+	actual := testStruct{
+		S: "str",
+		A: anotherStruct{A: []int{1}},
+	}
+	equal(t, `repr.testStruct{S: "str"}`, String(actual, Hide[anotherStruct]()))
+	equal(t, "repr.testStruct{\n  S: \"str\",\n}", String(actual, Indent("  "), Hide[anotherStruct]()))
+	equal(t, "repr.testStructWithInterfaceField{S: \"str\"}",
+		String(testStructWithInterfaceField{S: "str", I: anotherStruct{}}, Hide[fmt.Stringer]()))
 }
 
 func TestReprEmptyArray(t *testing.T) {
@@ -196,7 +215,7 @@ func TestRecursiveIssue3(t *testing.T) {
 	child := &data{}
 	root := &data{children: []*data{child}}
 	child.parent = root
-	want := "&repr.data{children: []*repr.data{{parent: &..., }}}"
+	want := "&repr.data{children: []*repr.data{{parent: &...}}}"
 	have := String(root)
 	equal(t, want, have)
 }
@@ -217,7 +236,7 @@ func TestReprPrivateBytes(t *testing.T) {
 	case strings.Contains(v, "go1.10"), strings.Contains(v, "go1.11"):
 		equal(t, "repr.MyBuffer{buf: &bytes.Buffer{buf: []byte(\"Hi th3re!\"), bootstrap: [64]uint8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, }}", s)
 	default:
-		equal(t, "repr.MyBuffer{buf: &bytes.Buffer{buf: []byte(\"Hi th3re!\"), }}", s)
+		equal(t, "repr.MyBuffer{buf: &bytes.Buffer{buf: []byte(\"Hi th3re!\")}}", s)
 	}
 }
 

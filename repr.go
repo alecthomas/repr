@@ -79,13 +79,12 @@ func IgnorePrivate() Option { return func(o *Printer) { o.ignorePrivate = true }
 // For example, `time.Hour` will be printed as `time.Duration(3600000000000)` rather than `time.Duration(1h0m0s)`.
 func ScalarLiterals() Option { return func(o *Printer) { o.useLiterals = true } }
 
-// Hide excludes the given types from representation, instead just printing the name of the type.
-func Hide(ts ...any) Option {
+// Hide excludes fields of the given type from representation.
+func Hide[T any]() Option {
 	return func(o *Printer) {
-		for _, t := range ts {
-			rt := reflect.Indirect(reflect.ValueOf(t)).Type()
-			o.exclude[rt] = true
-		}
+		t := (*T)(nil) // A bit of skulduggery so we can Hide() interfaces.
+		rt := reflect.TypeOf(t).Elem()
+		o.exclude[rt] = true
 	}
 }
 
@@ -167,10 +166,6 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		fmt.Fprint(p.w, "nil")
 		return
 	}
-	if p.exclude[v.Type()] {
-		fmt.Fprintf(p.w, "%s...", v.Type().Name())
-		return
-	}
 	t := v.Type()
 
 	if t == byteSliceType {
@@ -186,7 +181,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		}
 	}
 	// Attempt to use fmt.GoStringer interface.
-	if !p.ignoreGoStringer && t.Implements(goStringerType) {
+	if !p.ignoreGoStringer && t.Implements(goStringerType) && v.CanInterface() {
 		fmt.Fprint(p.w, v.Interface().(fmt.GoStringer).GoString())
 		return
 	}
@@ -254,8 +249,12 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 			if p.indent != "" && v.NumField() != 0 {
 				fmt.Fprintf(p.w, "\n")
 			}
+			previous := false
 			for i := 0; i < v.NumField(); i++ {
 				t := v.Type().Field(i)
+				if p.exclude[t.Type] {
+					continue
+				}
 				f := v.Field(i)
 				// skip private fields
 				if p.ignorePrivate && !f.CanInterface() {
@@ -264,6 +263,10 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 				if p.omitEmpty && f.IsZero() {
 					continue
 				}
+				if previous && p.indent == "" {
+					fmt.Fprintf(p.w, ", ")
+				}
+				previous = true
 				fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
 				p.reprValue(seen, f, ni, true, t.Type == anyType)
 
@@ -291,11 +294,8 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 						continue
 					}
 				}
-
 				if p.indent != "" {
 					fmt.Fprintf(p.w, ",\n")
-				} else if i < v.NumField()-1 {
-					fmt.Fprintf(p.w, ", ")
 				}
 			}
 			fmt.Fprintf(p.w, "%s}", indent)

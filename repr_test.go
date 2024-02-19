@@ -48,6 +48,15 @@ func TestReprEmptyArray(t *testing.T) {
 	equal(t, "[]string{}", String([]string{}, OmitEmpty(false)))
 }
 
+func TestReprEmptySliceMapFields(t *testing.T) {
+	v := struct {
+		S  []string
+		M  map[string]string
+		NZ []string
+	}{[]string{}, map[string]string{}, []string{"a", "b"}}
+	equal(t, `struct { S []string; M map[string]string; NZ []string }{NZ: []string{"a", "b"}}`, String(v, OmitEmpty(true)))
+}
+
 func TestReprStringArray(t *testing.T) {
 	equal(t, "[]string{\"a\", \"b\"}", String([]string{"a", "b"}))
 }
@@ -174,7 +183,7 @@ type intSliceStruct struct{ f []int }
 func TestReprEmptySliceStruct(t *testing.T) {
 	a := intSliceStruct{f: []int{}}
 	s := String(a)
-	equal(t, "repr.intSliceStruct{f: []int{}}", s)
+	equal(t, "repr.intSliceStruct{}", s)
 }
 
 func TestReprNilSliceStruct(t *testing.T) {

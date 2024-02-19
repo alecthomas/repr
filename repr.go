@@ -256,11 +256,14 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 					continue
 				}
 				f := v.Field(i)
+				ft := f.Type()
 				// skip private fields
 				if p.ignorePrivate && !f.CanInterface() {
 					continue
 				}
-				if p.omitEmpty && f.IsZero() {
+				if p.omitEmpty && (f.IsZero() ||
+					ft.Kind() == reflect.Slice && f.Len() == 0 ||
+					ft.Kind() == reflect.Map && f.Len() == 0) {
 					continue
 				}
 				if previous && p.indent == "" {

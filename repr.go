@@ -63,7 +63,24 @@ func Indent(indent string) Option { return func(o *Printer) { o.indent = indent 
 func NoIndent() Option { return Indent("") }
 
 // OmitEmpty sets whether empty field members should be omitted from output.
-func OmitEmpty(omitEmpty bool) Option { return func(o *Printer) { o.omitEmpty = omitEmpty } }
+//
+// Empty field members are either the zero type, or zero-length maps and slices.
+func OmitEmpty(omitEmpty bool) Option {
+	return func(o *Printer) {
+		o.omitEmpty = omitEmpty
+	}
+}
+
+// OmitZero sets whether zero field members should be omitted from output.
+//
+// Field members are considered zero if they have an IsZero method that returns
+// true, or if [reflect.Value.IsZero] returns true. Empty maps and slices are
+// not zero.
+func OmitZero(omitZero bool) Option {
+	return func(o *Printer) {
+		o.omitZero = omitZero
+	}
+}
 
 // ExplicitTypes adds explicit typing to slice and map struct values that would normally be inferred by Go.
 func ExplicitTypes(ok bool) Option { return func(o *Printer) { o.explicitTypes = true } }
@@ -95,6 +112,7 @@ func AlwaysIncludeType() Option { return func(o *Printer) { o.alwaysIncludeType 
 type Printer struct {
 	indent            string
 	omitEmpty         bool
+	omitZero          bool
 	ignoreGoStringer  bool
 	ignorePrivate     bool
 	alwaysIncludeType bool
@@ -110,6 +128,7 @@ func New(w io.Writer, options ...Option) *Printer {
 		w:         w,
 		indent:    "  ",
 		omitEmpty: true,
+		omitZero:  true,
 		exclude:   map[reflect.Type]bool{},
 	}
 	for _, option := range options {
@@ -117,6 +136,12 @@ func New(w io.Writer, options ...Option) *Printer {
 	}
 	return p
 }
+
+type isZeroer interface {
+	IsZero() bool
+}
+
+var isZeroerType = reflect.TypeFor[isZeroer]()
 
 func (p *Printer) nextIndent(indent string) string {
 	if p.indent != "" {
@@ -261,11 +286,17 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 				if p.ignorePrivate && !f.CanInterface() {
 					continue
 				}
+
+				if p.omitZero && ((ft.Implements(isZeroerType) && f.Interface().(isZeroer).IsZero()) || f.IsZero()) {
+					continue
+				}
+
 				if p.omitEmpty && (f.IsZero() ||
 					ft.Kind() == reflect.Slice && f.Len() == 0 ||
 					ft.Kind() == reflect.Map && f.Len() == 0) {
 					continue
 				}
+
 				if previous && p.indent == "" {
 					fmt.Fprintf(p.w, ", ")
 				}

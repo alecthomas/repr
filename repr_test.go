@@ -2,6 +2,7 @@ package repr
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"runtime"
 	"strings"
@@ -148,6 +149,11 @@ func TestReprStructWithIndent(t *testing.T) {
 func TestReprByteArray(t *testing.T) {
 	b := []byte{1, 2, 3}
 	equal(t, "[]byte(\"\\x01\\x02\\x03\")", String(b))
+}
+
+func TestReprJSONRaw(t *testing.T) {
+	b := json.RawMessage(`["string", 1]`)
+	equal(t, "[\"string\", 1]", String(b))
 }
 
 type privateTestStruct struct {

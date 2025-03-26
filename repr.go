@@ -7,6 +7,7 @@ package repr
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -47,6 +48,7 @@ var (
 	goStringerType = reflect.TypeOf((*fmt.GoStringer)(nil)).Elem()
 	anyType        = reflect.TypeOf((*any)(nil)).Elem()
 
+	rawJSONType   = reflect.TypeOf(json.RawMessage{})
 	byteSliceType = reflect.TypeOf([]byte{})
 )
 
@@ -192,6 +194,11 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		return
 	}
 	t := v.Type()
+
+	if t == rawJSONType {
+		fmt.Fprintf(p.w, "%s", v.Bytes())
+		return
+	}
 
 	if t == byteSliceType {
 		fmt.Fprintf(p.w, "[]byte(%q)", v.Bytes())

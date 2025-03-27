@@ -196,7 +196,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 	t := v.Type()
 
 	if t == rawJSONType {
-		fmt.Fprintf(p.w, "%s", v.Bytes())
+		fmt.Fprintf(p.w, "json.RawMessage(`%s`)", v.Bytes())
 		return
 	}
 

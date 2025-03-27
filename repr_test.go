@@ -153,7 +153,7 @@ func TestReprByteArray(t *testing.T) {
 
 func TestReprJSONRaw(t *testing.T) {
 	b := json.RawMessage(`["string", 1]`)
-	equal(t, "[\"string\", 1]", String(b))
+	equal(t, "json.RawMessage(`[\"string\", 1]`)", String(b))
 }
 
 type privateTestStruct struct {

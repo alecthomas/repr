@@ -278,7 +278,7 @@ func TestReprPrivateBytes(t *testing.T) {
 }
 
 func TestReprAnyNumeric(t *testing.T) {
-	var value = []any{float64(123)}
+	value := []any{float64(123)}
 	equal(t, "[]any{float64(123)}", String(value))
 }
 
@@ -292,4 +292,13 @@ func TestReprFunc(t *testing.T) {
 func TestScalarLiterals(t *testing.T) {
 	d := time.Second
 	equal(t, "time.Duration(1000000000)", String(d, ScalarLiterals()))
+}
+
+func TestHideStructFieldsByName(t *testing.T) {
+	actual := testStruct{
+		S: "str",
+		A: anotherStruct{A: []int{1}},
+	}
+	res := String(actual, HideField("A"))
+	equal(t, `repr.testStruct{S: "str"}`, res)
 }

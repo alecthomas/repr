@@ -176,6 +176,16 @@ func TestReprPrivateMixedIgnorePrivate(t *testing.T) {
 	equal(t, `repr.mixedTestStruct{A: "hello", C: "goodbye"}`, String(s, IgnorePrivate()))
 }
 
+func TestReprExcludeKeys(t *testing.T) {
+	s := mixedTestStruct{"hello", "world", "goodbye", "cruel world"}
+	equal(t, `repr.mixedTestStruct{A: "hello", C: ***}`, String(s, MaskKeys("C"), IgnorePrivate()))
+}
+
+func TestReprExcludeKeys2(t *testing.T) {
+	s := mixedTestStruct{"hello", "world", "goodbye", "cruel world"}
+	equal(t, `repr.mixedTestStruct{A: "hello", b: ***, C: ***, _D: ***}`, String(s, MaskKeys("C", "b", "_D")))
+}
+
 func TestReprNilAlone(t *testing.T) {
 	var err error
 	s := String(err)

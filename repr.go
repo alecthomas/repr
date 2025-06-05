@@ -91,6 +91,13 @@ func IgnoreGoStringer() Option { return func(o *Printer) { o.ignoreGoStringer = 
 // IgnorePrivate disables private field members from output.
 func IgnorePrivate() Option { return func(o *Printer) { o.ignorePrivate = true } }
 
+// MaskKeys removes certain keys from output.
+func MaskKeys(keys ...string) Option {
+	return func(o *Printer) {
+		o.excludeKeys = keys
+	}
+}
+
 // ScalarLiterals forces the use of literals for scalars, rather than a string representation if available.
 //
 // For example, `time.Hour` will be printed as `time.Duration(3600000000000)` rather than `time.Duration(1h0m0s)`.
@@ -120,6 +127,7 @@ type Printer struct {
 	exclude           map[reflect.Type]bool
 	w                 io.Writer
 	useLiterals       bool
+	excludeKeys       []string
 }
 
 // New creates a new Printer on w with the given Options.
@@ -302,6 +310,25 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 				}
 				previous = true
 				fmt.Fprintf(p.w, "%s%s: ", ni, t.Name)
+
+				// ignore specific Keye
+				if p.excludeKeys != nil {
+					skip := false
+					for _, k := range p.excludeKeys {
+						if k == t.Name {
+							skip = true
+							break
+						}
+					}
+					if skip {
+						fmt.Fprint(p.w, "***")
+						if p.indent != "" {
+							fmt.Fprintf(p.w, ",\n")
+						}
+						continue
+					}
+				}
+
 				p.reprValue(seen, f, ni, true, t.Type == anyType)
 
 				// if private fields should be ignored, look up if a public

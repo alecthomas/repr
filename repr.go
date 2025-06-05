@@ -105,6 +105,13 @@ func Hide[T any]() Option {
 	}
 }
 
+// HideField excludes fields of structs that match the given name from representation.
+func HideField(name string) Option {
+	return func(o *Printer) {
+		o.excludeFields[name] = true
+	}
+}
+
 // AlwaysIncludeType always includes explicit type information for each item.
 func AlwaysIncludeType() Option { return func(o *Printer) { o.alwaysIncludeType = true } }
 
@@ -118,6 +125,7 @@ type Printer struct {
 	alwaysIncludeType bool
 	explicitTypes     bool
 	exclude           map[reflect.Type]bool
+	excludeFields     map[string]bool
 	w                 io.Writer
 	useLiterals       bool
 }
@@ -125,11 +133,12 @@ type Printer struct {
 // New creates a new Printer on w with the given Options.
 func New(w io.Writer, options ...Option) *Printer {
 	p := &Printer{
-		w:         w,
-		indent:    "  ",
-		omitEmpty: true,
-		omitZero:  true,
-		exclude:   map[reflect.Type]bool{},
+		w:             w,
+		indent:        "  ",
+		omitEmpty:     true,
+		omitZero:      true,
+		exclude:       map[reflect.Type]bool{},
+		excludeFields: map[string]bool{},
 	}
 	for _, option := range options {
 		option(p)
@@ -278,6 +287,9 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 			for i := 0; i < v.NumField(); i++ {
 				t := v.Type().Field(i)
 				if p.exclude[t.Type] {
+					continue
+				}
+				if p.excludeFields[t.Name] {
 					continue
 				}
 				f := v.Field(i)

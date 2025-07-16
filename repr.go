@@ -194,7 +194,10 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		return
 	}
 	seen[v] = true
-	defer delete(seen, v)
+	// Under some circumstances I see infinite recursion where I wouldn't expect it, but removing this solves it. Not
+	// sure why, I haven't been able to narrow it down to a small reproducible case.
+
+	// defer delete(seen, v)
 
 	if v.Kind() == reflect.Invalid || (v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Chan || v.Kind() == reflect.Slice || v.Kind() == reflect.Func || v.Kind() == reflect.Interface) && v.IsNil() {
 		fmt.Fprint(p.w, "nil")

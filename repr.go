@@ -299,7 +299,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 					continue
 				}
 
-				if p.omitZero && ((ft.Implements(isZeroerType) && f.Interface().(isZeroer).IsZero()) || f.IsZero()) {
+				if p.omitZero && ((ft.Implements(isZeroerType) && f.CanInterface() && f.Interface().(isZeroer).IsZero()) || f.IsZero()) {
 					continue
 				}
 

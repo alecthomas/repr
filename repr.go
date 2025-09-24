@@ -184,7 +184,7 @@ func (p *Printer) Println(vs ...any) {
 		}
 		p.reprValue(map[reflect.Value]bool{}, reflect.ValueOf(v), "", true, false)
 	}
-	fmt.Fprintln(p.w)
+	_, _ = fmt.Fprintln(p.w)
 }
 
 // showType is true if struct types should be shown. isAnyValue is true if the containing value is an "any" type.
@@ -209,7 +209,7 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 
 	// If we can't access a private field directly with reflection, try and do so via unsafe.
 	if !v.CanInterface() && v.CanAddr() {
-		uv := reflect.NewAt(t, unsafe.Pointer(v.UnsafeAddr())).Elem()
+		uv := reflect.NewAt(t, unsafe.Pointer(v.UnsafeAddr())).Elem() //nolint
 		if uv.CanInterface() {
 			v = uv
 		}
@@ -438,7 +438,7 @@ func timeToGo(w io.Writer, t time.Time) {
 		zone = "nil"
 	case time.UTC:
 		zone = "time.UTC"
-	case time.Local:
+	case time.Local: //nolint
 		zone = "time.Local"
 	default:
 		n, off := t.Zone()
@@ -476,6 +476,8 @@ func substAny(t reflect.Type) string {
 			return "func" + t.Name() + "(" + strings.Join(in, ", ") + ")"
 		}
 		return "func" + t.Name() + "(" + strings.Join(in, ", ") + ") (" + strings.Join(out, ", ") + ")"
+
+	default:
 	}
 
 	if t == anyType {

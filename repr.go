@@ -299,8 +299,18 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 					continue
 				}
 
-				if p.omitZero && ((ft.Implements(isZeroerType) && f.CanInterface() && f.Interface().(isZeroer).IsZero()) || f.IsZero()) {
-					continue
+				if p.omitZero {
+					// check if this type is a nil pointer to a type implementing IsZero
+					// with a value receiver and, if so, avoid calling IsZero() on it as
+					// the method call will automatically dereference the nil pointer and
+					// panic.
+					var nilPtrValueReceiver bool
+					if ft.Kind() == reflect.Pointer && f.IsNil() {
+						_, nilPtrValueReceiver = ft.Elem().MethodByName("IsZero")
+					}
+					if (ft.Implements(isZeroerType) && !nilPtrValueReceiver && f.CanInterface() && f.Interface().(isZeroer).IsZero()) || f.IsZero() {
+						continue
+					}
 				}
 
 				if p.omitEmpty && (f.IsZero() ||

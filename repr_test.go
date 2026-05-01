@@ -81,8 +81,9 @@ func TestReprZeroSliceMapFields(t *testing.T) {
 		B   bool
 		ZC  zeroTest
 		C   zeroTest
-	}{[]string{}, []string{"a", "b"}, map[string]string{}, map[string]string{"a": "b"}, 0, 1, "", "a", false, true, zeroTest{i: 100}, zeroTest{i: 10}}
-	equal(t, `struct { ZSl []string; Sl []string; ZM map[string]string; M map[string]string; ZI int; I int; ZS string; S string; ZB bool; B bool; ZC repr.zeroTest; C repr.zeroTest }{ZSl: []string{}, Sl: []string{"a", "b"}, ZM: map[string]string{}, M: map[string]string{"a": "b"}, I: 1, S: "a", B: true, C: repr.zeroTest{i: 10}}`, String(v, OmitEmpty(false), OmitZero(true)))
+		T   *time.Time
+	}{[]string{}, []string{"a", "b"}, map[string]string{}, map[string]string{"a": "b"}, 0, 1, "", "a", false, true, zeroTest{i: 100}, zeroTest{i: 10}, nil}
+	equal(t, `struct { ZSl []string; Sl []string; ZM map[string]string; M map[string]string; ZI int; I int; ZS string; S string; ZB bool; B bool; ZC repr.zeroTest; C repr.zeroTest; T *time.Time }{ZSl: []string{}, Sl: []string{"a", "b"}, ZM: map[string]string{}, M: map[string]string{"a": "b"}, I: 1, S: "a", B: true, C: repr.zeroTest{i: 10}}`, String(v, OmitEmpty(false), OmitZero(true)))
 }
 
 func TestReprStringArray(t *testing.T) {

@@ -196,8 +196,16 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 	seen[v] = true
 	defer delete(seen, v)
 
-	if v.Kind() == reflect.Invalid || (v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Chan || v.Kind() == reflect.Slice || v.Kind() == reflect.Func || v.Kind() == reflect.Interface) && v.IsNil() {
+	if v.Kind() == reflect.Invalid {
 		fmt.Fprint(p.w, "nil")
+		return
+	}
+	if (v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Chan || v.Kind() == reflect.Slice || v.Kind() == reflect.Func || v.Kind() == reflect.Interface) && v.IsNil() {
+		if p.alwaysIncludeType || isAnyValue {
+			fmt.Fprintf(p.w, "(%s)(nil)", substAny(v.Type()))
+		} else {
+			fmt.Fprint(p.w, "nil")
+		}
 		return
 	}
 	t := v.Type()
@@ -305,10 +313,26 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 					// the method call will automatically dereference the nil pointer and
 					// panic.
 					var nilPtrValueReceiver bool
-					if ft.Kind() == reflect.Pointer && f.IsNil() {
-						_, nilPtrValueReceiver = ft.Elem().MethodByName("IsZero")
+					// interfaces can hold typed nil pointers. checkF extracts the dynamic
+					// underlying value from the interface to identify if the inner value
+					// is a nil pointer.
+					checkF := f
+					if checkF.Kind() == reflect.Interface {
+						checkF = checkF.Elem()
 					}
-					if (ft.Implements(isZeroerType) && !nilPtrValueReceiver && f.CanInterface() && f.Interface().(isZeroer).IsZero()) || f.IsZero() {
+					if checkF.Kind() == reflect.Pointer && checkF.IsNil() {
+						_, nilPtrValueReceiver = checkF.Type().Elem().MethodByName("IsZero")
+					}
+					// call the value's IsZero() if possible to determine if it should be
+					// omitted. If IsZero is not implemented or can't be called, then
+					// fall back to reflect.Value.IsZero().
+					isZero := f.IsZero()
+					if ft.Implements(isZeroerType) && f.CanInterface() && !nilPtrValueReceiver {
+						if iface := f.Interface(); iface != nil {
+							isZero = iface.(isZeroer).IsZero()
+						}
+					}
+					if isZero {
 						continue
 					}
 				}

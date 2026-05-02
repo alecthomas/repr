@@ -80,10 +80,13 @@ func TestReprZeroSliceMapFields(t *testing.T) {
 		ZB  bool
 		B   bool
 		ZC  zeroTest
+		ZC2 zeroTest
 		C   zeroTest
 		T   *time.Time
-	}{[]string{}, []string{"a", "b"}, map[string]string{}, map[string]string{"a": "b"}, 0, 1, "", "a", false, true, zeroTest{i: 100}, zeroTest{i: 10}, nil}
-	equal(t, `struct { ZSl []string; Sl []string; ZM map[string]string; M map[string]string; ZI int; I int; ZS string; S string; ZB bool; B bool; ZC repr.zeroTest; C repr.zeroTest; T *time.Time }{ZSl: []string{}, Sl: []string{"a", "b"}, ZM: map[string]string{}, M: map[string]string{"a": "b"}, I: 1, S: "a", B: true, C: repr.zeroTest{i: 10}}`, String(v, OmitEmpty(false), OmitZero(true)))
+		ZIf isZeroer
+		If  isZeroer
+	}{[]string{}, []string{"a", "b"}, map[string]string{}, map[string]string{"a": "b"}, 0, 1, "", "a", false, true, zeroTest{i: 100}, zeroTest{i: 0}, zeroTest{i: 10}, nil, nil, (*time.Time)(nil)}
+	equal(t, `struct { ZSl []string; Sl []string; ZM map[string]string; M map[string]string; ZI int; I int; ZS string; S string; ZB bool; B bool; ZC repr.zeroTest; ZC2 repr.zeroTest; C repr.zeroTest; T *time.Time; ZIf repr.isZeroer; If repr.isZeroer }{ZSl: []string{}, Sl: []string{"a", "b"}, ZM: map[string]string{}, M: map[string]string{"a": "b"}, I: 1, S: "a", B: true, ZC2: repr.zeroTest{}, C: repr.zeroTest{i: 10}, If: (*time.Time)(nil)}`, String(v, OmitEmpty(false), OmitZero(true)))
 }
 
 func TestReprStringArray(t *testing.T) {

@@ -289,7 +289,7 @@ func TestReprAnyNumeric(t *testing.T) {
 func TestReprFunc(t *testing.T) {
 	in := func(any) {}
 	equal(t, "func(any)", String(in))
-	inout := func(interface{}) (any, error) { panic("not implemented") }
+	inout := func(any) (any, error) { panic("not implemented") }
 	equal(t, "func(any) (any, error)", String(inout))
 }
 

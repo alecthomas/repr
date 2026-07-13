@@ -160,7 +160,6 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		return
 	}
 	seen[v] = true
-	defer delete(seen, v)
 
 	if v.Kind() == reflect.Invalid || (v.Kind() == reflect.Ptr || v.Kind() == reflect.Map || v.Kind() == reflect.Chan || v.Kind() == reflect.Slice || v.Kind() == reflect.Func || v.Kind() == reflect.Interface) && v.IsNil() {
 		fmt.Fprint(p.w, "nil")

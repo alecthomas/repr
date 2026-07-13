@@ -194,7 +194,6 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 		return
 	}
 	seen[v] = true
-	defer delete(seen, v)
 
 	if v.Kind() == reflect.Invalid {
 		fmt.Fprint(p.w, "nil")

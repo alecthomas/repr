@@ -119,6 +119,38 @@ func TestReprMap(t *testing.T) {
 	}
 }
 
+func TestReprRepeatedValues(t *testing.T) {
+	tests := []struct {
+		name  string
+		value any
+		want  string
+	}{
+		{
+			name: "MapStrings",
+			value: map[string]string{
+				"NAME":        "Arch Linux",
+				"PRETTY_NAME": "Arch Linux",
+			},
+			want: `map[string]string{"NAME": "Arch Linux", "PRETTY_NAME": "Arch Linux"}`,
+		},
+		{
+			name:  "SliceStrings",
+			value: []string{"same", "same"},
+			want:  `[]string{"same", "same"}`,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			equal(t, test.want, String(test.value))
+		})
+	}
+}
+
+func TestReprSharedReference(t *testing.T) {
+	value := &testStruct{S: "same"}
+	equal(t, `[]*repr.testStruct{{S: "same"}, &...}`, String([]*testStruct{value, value}))
+}
+
 func TestReprIntMap(t *testing.T) {
 	m := map[int]string{3: "b", 1: "a", 5: "c"}
 	for i := 0; i < 1000; i++ {

@@ -166,13 +166,30 @@ func (p *Printer) thisIndent(indent string) string {
 	return ""
 }
 
+type reference struct {
+	typeOf  reflect.Type
+	pointer unsafe.Pointer
+	length  int
+}
+
+func referenceFor(v reflect.Value) (reference, bool) {
+	switch v.Kind() {
+	case reflect.Map, reflect.Ptr:
+		return reference{typeOf: v.Type(), pointer: v.UnsafePointer()}, true
+	case reflect.Slice:
+		return reference{typeOf: v.Type(), pointer: v.UnsafePointer(), length: v.Len()}, true
+	default:
+		return reference{}, false
+	}
+}
+
 // Print the values.
 func (p *Printer) Print(vs ...any) {
 	for i, v := range vs {
 		if i > 0 {
 			fmt.Fprint(p.w, " ")
 		}
-		p.reprValue(map[reflect.Value]bool{}, reflect.ValueOf(v), "", true, false)
+		p.reprValue(map[reference]bool{}, reflect.ValueOf(v), "", true, false)
 	}
 }
 
@@ -182,19 +199,13 @@ func (p *Printer) Println(vs ...any) {
 		if i > 0 {
 			fmt.Fprint(p.w, " ")
 		}
-		p.reprValue(map[reflect.Value]bool{}, reflect.ValueOf(v), "", true, false)
+		p.reprValue(map[reference]bool{}, reflect.ValueOf(v), "", true, false)
 	}
 	_, _ = fmt.Fprintln(p.w)
 }
 
 // showType is true if struct types should be shown. isAnyValue is true if the containing value is an "any" type.
-func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent string, showStructType bool, isAnyValue bool) { // nolint: gocyclo
-	if seen[v] {
-		fmt.Fprint(p.w, "...")
-		return
-	}
-	seen[v] = true
-
+func (p *Printer) reprValue(seen map[reference]bool, v reflect.Value, indent string, showStructType bool, isAnyValue bool) { // nolint: gocyclo
 	if v.Kind() == reflect.Invalid {
 		fmt.Fprint(p.w, "nil")
 		return
@@ -206,6 +217,16 @@ func (p *Printer) reprValue(seen map[reflect.Value]bool, v reflect.Value, indent
 			fmt.Fprint(p.w, "nil")
 		}
 		return
+	}
+	if ref, ok := referenceFor(v); ok {
+		if seen[ref] {
+			if v.Kind() == reflect.Ptr {
+				fmt.Fprint(p.w, "&")
+			}
+			fmt.Fprint(p.w, "...")
+			return
+		}
+		seen[ref] = true
 	}
 	t := v.Type()
 

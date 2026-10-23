@@ -222,6 +222,7 @@ func TestExplicitTypes(t *testing.T) {
 	arr := []*privateTestStruct{{"hello"}, nil}
 	s := String(arr, ExplicitTypes(true))
 	equal(t, "[]*repr.privateTestStruct{&repr.privateTestStruct{a: \"hello\"}, nil}", s)
+	equal(t, `[]*repr.privateTestStruct{{a: "hello"}, nil}`, String(arr, ExplicitTypes(false)))
 }
 
 func TestReprNilInsideArray(t *testing.T) {

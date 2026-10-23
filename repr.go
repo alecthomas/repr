@@ -83,7 +83,7 @@ func OmitZero(omitZero bool) Option {
 }
 
 // ExplicitTypes adds explicit typing to slice and map struct values that would normally be inferred by Go.
-func ExplicitTypes(ok bool) Option { return func(o *Printer) { o.explicitTypes = true } }
+func ExplicitTypes(ok bool) Option { return func(o *Printer) { o.explicitTypes = ok } }
 
 // IgnoreGoStringer disables use of the .GoString() method.
 func IgnoreGoStringer() Option { return func(o *Printer) { o.ignoreGoStringer = true } }
